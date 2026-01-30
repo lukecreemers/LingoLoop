@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { SuccessResponseInterceptor } from './common/interceptors/success-response.interceptor';
