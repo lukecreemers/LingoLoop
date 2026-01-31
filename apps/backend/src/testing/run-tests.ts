@@ -9,6 +9,8 @@ import { PromptTester, PromptTestConfig } from './prompt-tester';
 import { FIB_TEST_CONFIG } from './cases/fill-in-blanks.cases';
 import { WIB_TEST_CONFIG } from './cases/write-in-blanks.cases';
 import { WMM_TEST_CONFIG } from './cases/word-meaning-match.cases';
+import { TM_TEST_CONFIG } from './cases/translation-marking.cases';
+import { TG_TEST_CONFIG } from './cases/translation-generation.cases';
 
 // ============================================================================
 // REGISTER FEATURES HERE
@@ -19,6 +21,8 @@ const FEATURES: Record<string, PromptTestConfig<any, any>> = {
   fib: FIB_TEST_CONFIG,
   wib: WIB_TEST_CONFIG,
   wmm: WMM_TEST_CONFIG,
+  tm: TM_TEST_CONFIG,
+  tg: TG_TEST_CONFIG,
 };
 
 // ============================================================================

@@ -11,6 +11,7 @@ export interface FIBInputs extends Record<string, string | number | string[]> {
   instructions: string;
   blankAmount: number;
   distractorInstructions: string;
+  disctractorCount: number;
   userWordList: string[];
   sentenceCount: number;
 }
@@ -20,12 +21,15 @@ export interface FIBInputs extends Record<string, string | number | string[]> {
 // ============================================================================
 
 export const FIB_PROMPT_TEMPLATE = `
-Create {{sentenceCount}} "Fill in the Blank" exercises for a {{userLevel}} Spanish student.
+### PRIMARY TASK
+Create {{sentenceCount}} "Fill in the Blank" exercises for a {{userLevel}} Spanish student focusing STRICTLY on: {{instructions}}.
 
-Topic: {{instructions}}
-Blank word amount: {{blankAmount}}
-The student also needs to review these words: {{userWordList}}. Try and naturally work some these words into a few of the sentences as non blank words if possible, but always prioritise the coherency of the sentence. The user is learning how to use these words properly and thus should only read them in contexts where they make complete sense.
-Again, these words are not the priority of the learning, but if you can fit them in naturally, do so.
+### CONTENT HIERARCHY
+1. **GRAMMAR FIRST (100% WEIGHT):** The priority is a perfect, deterministic test of the target grammar.
+2. **OPTIONAL VOCAB (10% WEIGHT):** You may use words from this list: [{{userWordList}}], but ONLY if they fit the primary task context perfectly and naturally. 
+   - DO NOT force these words.
+   - If a word from this list makes the sentence sound "robot-written" or strange, IGNORE IT.
+   - The grammar goal is the only thing that matters.
 
 ### CONSTRAINTS (CRITICAL)
 1. **Zero Ambiguity:** Distractors must be contextually and semantically **incorrect**. If a distractor makes sense in the sentence, it is a fail.
@@ -33,7 +37,7 @@ Again, these words are not the priority of the learning, but if you can fit them
 3. **No Duplicate Answers:** Do not include any of the 'correctAnswer' strings inside the 'distractors' array.
 4. **Natural Syntax:** Ensure the sequence of 'text' and 'blank' segments forms a perfectly fluid, natural sentence.
 5. **Unique Answers:** In multi-blank sentences, each answer must logically fit only its designated slot. Ensure answers are not semantically interchangeable. 
-6. **Distractor Logic:** {{distractorInstructions}}.
+6. **Distractor Logic:** {{distractorInstructions}}. Add {{distractorCount}} distractors to the sentence.
 `.trim();
 
 // ============================================================================
@@ -52,6 +56,7 @@ export const FIB_TEST_CASES: TestCase<FIBInputs>[] = [
       blankAmount: 2,
       distractorInstructions:
         'Must use the same adjectives but with incorrect gender (o/a) and number (s) suffixes.',
+      disctractorCount: 4,
       userWordList: [
         'mesas',
         'sillas',
@@ -78,6 +83,7 @@ export const FIB_TEST_CASES: TestCase<FIBInputs>[] = [
       blankAmount: 2,
       distractorInstructions:
         'Swap the verbs. If the answer is "conozco", the primary distractor must be "sé".',
+      disctractorCount: 4,
       userWordList: [
         'desarrollar',
         'alrededor',
@@ -104,6 +110,7 @@ export const FIB_TEST_CASES: TestCase<FIBInputs>[] = [
       blankAmount: 2,
       distractorInstructions:
         'Provide the correct verb in present indicative and present subjunctive to test tense-sequence knowledge.',
+      disctractorCount: 4,
       userWordList: [
         'ojalá',
         'habría',
@@ -130,6 +137,7 @@ export const FIB_TEST_CASES: TestCase<FIBInputs>[] = [
       blankAmount: 1,
       distractorInstructions:
         'Distractors must match the part-of-speech of the blank word but be contextually incorrect.',
+      disctractorCount: 4,
       userWordList: [
         'aunque',
         'sin embargo',

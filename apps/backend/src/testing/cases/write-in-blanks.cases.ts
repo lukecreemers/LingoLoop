@@ -30,9 +30,8 @@ Again, these words are not the priority of the learning, but if you can fit them
 1. **Target Word/Grammar:** {{instructions}}
 2. **Blank Marker:** Use exactly {{blankAmount}} blanks per sentence, marked with [*].
 3. **Clue Integration:** Every blank MUST have a corresponding clue (e.g., an infinitive verb like "(tener)" or a base noun) that provides the user with the root word to be conjugated or transformed.
-4. **Vocabulary Injection:** Naturally incorporate 2-3 words from [{{userWordList}}] into the static text (non-blank parts) of the sentences.
-5. **Deterministic Answers:** The sentence context must be so specific that only ONE correct form/word fits the blank. Avoid sentences where multiple tenses or synonyms could logically work.
-6. **Natural Syntax:** The resulting full sentence must be conversational, high-quality Spanish.
+4. **Deterministic Answers:** The sentence context must be so specific that only ONE correct form/word fits the blank. Avoid sentences where multiple tenses or synonyms could logically work.
+5. **Natural Syntax:** The resulting full sentence must be conversational, high-quality Spanish.
 `.trim();
 
 // ============================================================================
