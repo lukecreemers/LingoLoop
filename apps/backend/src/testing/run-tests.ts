@@ -5,27 +5,28 @@
  */
 
 import 'dotenv/config';
-import { PromptTester } from './prompt-tester';
+import { PromptTester, PromptTestConfig } from './prompt-tester';
 import { FIB_TEST_CONFIG } from './cases/fill-in-blanks.cases';
+import { WIB_TEST_CONFIG } from './cases/write-in-blanks.cases';
+import { WMM_TEST_CONFIG } from './cases/word-meaning-match.cases';
 
 // ============================================================================
 // REGISTER FEATURES HERE
 // ============================================================================
 
-const FEATURES = {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const FEATURES: Record<string, PromptTestConfig<any, any>> = {
   fib: FIB_TEST_CONFIG,
-  // Add more:
-  // listening: LISTENING_TEST_CONFIG,
+  wib: WIB_TEST_CONFIG,
+  wmm: WMM_TEST_CONFIG,
 };
-
-type FeatureKey = keyof typeof FEATURES;
 
 // ============================================================================
 // MAIN
 // ============================================================================
 
 async function main() {
-  const featureKey = process.argv[2] as FeatureKey;
+  const featureKey = process.argv[2];
 
   if (!featureKey || !FEATURES[featureKey]) {
     console.error('\n❌ Specify a feature:\n');
