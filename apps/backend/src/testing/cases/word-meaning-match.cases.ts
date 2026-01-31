@@ -44,119 +44,173 @@ The student is also reviewing these words: {{userWordList}}. If any fit naturall
 
 export const WMM_TEST_CASES: TestCase<WMMInputs>[] = [
   // --------------------------------------------------------------------------
-  // BEGINNER: Core Vocabulary
+  // BEGINNER: Sparse Filtering
   // --------------------------------------------------------------------------
   {
     name: 'Beginner - Verb Infinitive to English',
-    description: 'Match Spanish infinitives to English translations.',
+    description:
+      'AI must filter verbs from a list containing nouns and adjectives.',
     inputs: {
       userLevel: 'beginner',
       matchType: 'Spanish Infinitive → English Translation',
       theme: 'Common -ar verbs',
       pairCount: 5,
       distractorCount: 2,
-      userWordList: ['hablar', 'estudiar', 'trabajar', 'cocinar', 'caminar'],
+      // Sparse: Mix of verbs, nouns, and adjectives. AI must pick only the verbs.
+      userWordList: [
+        'hablar',
+        'casa',
+        'trabajar',
+        'azul',
+        'estudiar',
+        'libro',
+        'caminar',
+        'perro',
+        'cocinar',
+        'feliz',
+      ],
     },
   },
   {
     name: 'Beginner - Noun to Article',
-    description: 'Match nouns to correct definite article (el/la).',
+    description: 'AI must identify nouns and their genders from a sparse list.',
     inputs: {
       userLevel: 'beginner',
       matchType: 'Spanish Noun → Correct Article (el/la)',
       theme: 'Household objects and their gender',
       pairCount: 5,
       distractorCount: 2,
-      userWordList: ['mesa', 'libro', 'silla', 'ventana', 'teléfono', 'casa'],
-    },
-  },
-  {
-    name: 'Beginner - Adjective Opposites',
-    description: 'Match adjectives to their antonyms.',
-    inputs: {
-      userLevel: 'beginner',
-      matchType: 'Spanish Adjective → Its Opposite',
-      theme: 'Common descriptive adjectives',
-      pairCount: 5,
-      distractorCount: 2,
-      userWordList: ['grande', 'pequeño', 'alto', 'bajo', 'feliz', 'triste'],
+      // Sparse: AI needs to ignore the verbs 'comer' and 'leer' to focus on nouns.
+      userWordList: [
+        'mesa',
+        'comer',
+        'libro',
+        'silla',
+        'leer',
+        'ventana',
+        'verde',
+        'teléfono',
+        'casa',
+      ],
     },
   },
 
   // --------------------------------------------------------------------------
-  // INTERMEDIATE: Contextual Understanding
+  // INTERMEDIATE: Categorical Selection
   // --------------------------------------------------------------------------
   {
     name: 'Intermediate - Ser vs Estar Context',
-    description: 'Match sentence contexts to correct verb (ser/estar).',
+    description: 'AI must match specific concepts to the correct verb logic.',
     inputs: {
       userLevel: 'intermediate',
       matchType: 'Context Description → Correct Verb (Ser or Estar)',
       theme: 'Permanent vs temporary states',
       pairCount: 5,
       distractorCount: 2,
+      // Sparse: Mix of categories. AI must derive "profesión" or "ubicación" from these.
       userWordList: [
-        'profesión',
-        'ubicación',
-        'emoción',
-        'origen',
-        'condición',
+        'médico',
+        'estoy',
+        'madrid',
+        'inteligente',
+        'cansado',
+        'triste',
+        'español',
+        'actual',
       ],
     },
   },
   {
     name: 'Intermediate - Preterite vs Imperfect',
-    description: 'Match time expressions to appropriate past tense.',
+    description: 'AI filters time expressions from general vocabulary.',
     inputs: {
       userLevel: 'intermediate',
       matchType: 'Time Expression → Tense (Preterite or Imperfect)',
       theme: 'Past tense trigger phrases',
       pairCount: 5,
       distractorCount: 2,
-      userWordList: ['ayer', 'siempre', 'de repente', 'cada día', 'una vez'],
+      // Sparse: Only half the list are actually time triggers.
+      userWordList: [
+        'ayer',
+        'ventana',
+        'siempre',
+        'lograr',
+        'de repente',
+        'rincón',
+        'cada día',
+        'extraño',
+        'una vez',
+      ],
     },
   },
   {
     name: 'Intermediate - False Cognates',
-    description: 'Match Spanish false friends to actual meanings.',
+    description:
+      'AI must pick actual false cognates out of a list of regular words.',
     inputs: {
       userLevel: 'intermediate',
       matchType: 'Spanish Word → Actual English Meaning (NOT the cognate)',
       theme: 'Common false cognates',
       pairCount: 5,
       distractorCount: 3,
-      userWordList: ['embarazada', 'actual', 'realizar', 'soportar', 'éxito'],
+      // Sparse: Includes real cognates like 'doctor' to see if AI gets confused.
+      userWordList: [
+        'embarazada',
+        'doctor',
+        'actual',
+        'hospital',
+        'realizar',
+        'soportar',
+        'fruta',
+        'éxito',
+      ],
     },
   },
 
   // --------------------------------------------------------------------------
-  // ADVANCED: Nuanced Distinctions
+  // ADVANCED: Conceptual Nuance
   // --------------------------------------------------------------------------
   {
     name: 'Advanced - Subjunctive Triggers',
-    description: 'Match phrases to mood they trigger.',
+    description: 'AI selects triggers and ignores general advanced vocabulary.',
     inputs: {
       userLevel: 'advanced',
       matchType: 'Trigger Phrase → Mood Required (Indicative/Subjunctive)',
       theme: 'Mood selection after conjunctions and expressions',
       pairCount: 6,
       distractorCount: 2,
-      userWordList: ['ojalá', 'dudo que', 'es obvio que', 'cuando', 'aunque'],
+      // Sparse: AI must identify the "Triggers" specifically.
+      userWordList: [
+        'ojalá',
+        'clavo',
+        'dudo que',
+        'lengua',
+        'es obvio que',
+        'pelo',
+        'cuando',
+        'aunque',
+        'claro',
+      ],
     },
   },
   {
     name: 'Advanced - Idiomatic Expressions',
-    description: 'Match Spanish idioms to English equivalents.',
+    description: 'AI must identify idioms from a list of literal words.',
     inputs: {
       userLevel: 'advanced',
       matchType: 'Spanish Idiom → English Equivalent Meaning',
       theme: 'Common idiomatic expressions',
       pairCount: 5,
       distractorCount: 3,
+      // Sparse: AI must distinguish between idioms and their component words.
       userWordList: [
+        'pelo',
         'tomar el pelo',
+        'clavo',
         'dar en el clavo',
+        'pata',
         'meter la pata',
+        'ojo',
         'costar un ojo',
       ],
     },
