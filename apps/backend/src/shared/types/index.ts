@@ -1,5 +1,4 @@
 // Shared TypeScript types
-// Example:
 export interface User {
   id: string;
   email: string;
@@ -27,4 +26,4 @@ export interface PaginatedResponse<T> {
   totalPages: number;
 }
 
-export * from "./units";
+export * from './fill-in-blanks.types';

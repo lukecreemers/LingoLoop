@@ -1,4 +1,4 @@
-import { ApiResponse } from '@lingoloop/shared';
+import { ApiResponse } from '../../shared';
 import {
   CallHandler,
   ExecutionContext,

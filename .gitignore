@@ -40,6 +40,7 @@ lerna-debug.log*
 
 # Testing
 coverage/
+/apps/backend/src/testing/outputs/
 
 # React / Web
 .eslintcache
