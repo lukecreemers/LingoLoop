@@ -8,6 +8,7 @@ import WriteInBlanks from "../../features/units/WriteInBlanks";
 import WordMeaningMatch from "../../features/units/WordMeaningMatch";
 import Translation from "../../features/units/Translation";
 import Conversation from "../../features/units/Conversation";
+import WritingPractice from "../../features/units/WritingPractice";
 
 interface UnitDispatcherProps {
   unit: CompiledUnit;
@@ -77,6 +78,15 @@ export default function UnitDispatcher({
     case "conversation":
       return (
         <Conversation
+          data={unit.output}
+          plan={unit.plan}
+          onComplete={() => onComplete()}
+        />
+      );
+
+    case "writing practice":
+      return (
+        <WritingPractice
           data={unit.output}
           plan={unit.plan}
           onComplete={() => onComplete()}

@@ -40,3 +40,5 @@ export * from './ai-assist.types';
 export * from './ai-assist.dto';
 export * from './redo-unit.dto';
 export * from './flashcard.types';
+export * from './writing-practice.types';
+export * from './writing-practice.dto';

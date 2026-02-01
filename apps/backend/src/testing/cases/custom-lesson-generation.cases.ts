@@ -66,6 +66,12 @@ Generates a script between two distinct characters.
 - instructions: A specific situation or conflict (e.g., "Arguing over a late train").
 - conversationLength: "short" (4-6 turns), "medium" (8-12 turns), or "long" (14-20 turns).
 *Critical Goal: The agent will create names, ages, and genders for characters. Instructions should hint at the dynamic between them.*
+
+**8. writing practice (WP Agent)**
+Open-ended writing exercise where the user responds to prompts in the target language, then receives AI-powered feedback.
+- instructions: The topic or theme for writing prompts (e.g., "Daily routines", "Opinion on technology", "Describe a memorable experience").
+- promptCount: Number of writing prompts to generate (typically 2-4).
+*Critical Goal: FREE-FORM PRODUCTION. This is the highest level of language production - users write complete responses that get marked for grammar, vocabulary, and communication. Use at the END of a lesson to consolidate learning. For beginners, keep prompts simple (describe, list). For advanced, include opinion and hypothetical prompts.*
 `.trim();
 
 // ============================================================================

@@ -10,6 +10,9 @@ import type {
   TranslateSelectionOutput,
 } from '../../shared/types/ai-assist.types';
 import { ExplainWrongDto, TranslateSelectionDto } from '../../shared/types/ai-assist.dto';
+import { WPMarkingOutputSchema } from '../../shared/types/writing-practice.types';
+import type { WPMarkingOutput } from '../../shared/types/writing-practice.types';
+import { MarkWritingPracticeDto } from '../../shared/types/writing-practice.dto';
 
 @Controller('ai-assist')
 export class AiAssistController {
@@ -29,6 +32,14 @@ export class AiAssistController {
     @Body() input: TranslateSelectionDto,
   ): Promise<TranslateSelectionOutput> {
     return this.aiAssistService.translateSelection(input);
+  }
+
+  @Post('mark-writing')
+  @ZodResponse(WPMarkingOutputSchema)
+  async markWritingPractice(
+    @Body() input: MarkWritingPracticeDto,
+  ): Promise<WPMarkingOutput> {
+    return this.aiAssistService.markWritingPractice(input);
   }
 }
 

@@ -10,6 +10,7 @@ import {
   WIBOutputSchema,
   EXOutputSchema,
   FCOutputSchema,
+  WPOutputSchema,
 } from 'src/shared';
 import type {
   LessonPlanUnit,
@@ -21,6 +22,7 @@ import type {
   TranslationUnit,
   ConversationUnit,
   FlashcardUnit,
+  WritingPracticeUnit,
 } from 'src/shared';
 import type { RedoUnitInput } from 'src/shared/types/redo-unit.dto';
 
@@ -32,6 +34,7 @@ import { WIB_PROMPT_TEMPLATE } from 'src/testing/cases/write-in-blanks.cases';
 import { TG_PROMPT_TEMPLATE } from 'src/testing/cases/translation-generation.cases';
 import { CG_PROMPT_TEMPLATE } from 'src/testing/cases/conversation-generation.cases';
 import { FC_PROMPT_TEMPLATE } from 'src/testing/cases/flashcard.cases';
+import { WP_PROMPT_TEMPLATE } from 'src/testing/cases/writing-practice.cases';
 import type { LessonContext } from './lesson.context';
 import { DEFAULT_WORD_LIST, DEFAULT_GRAMMAR_LIST } from './lesson.context';
 
@@ -72,6 +75,8 @@ export class UnitFactoryService {
         return this.executeTranslationUnit(unit, context);
       case 'conversation':
         return this.executeConversationUnit(unit, context);
+      case 'writing practice':
+        return this.executeWritingPracticeUnit(unit, context);
       default:
         throw new Error(`Unknown unit type: ${(unit as LessonPlanUnit).type}`);
     }
@@ -143,6 +148,12 @@ export class UnitFactoryService {
           context,
           avoidContext,
         );
+      case 'writing practice':
+        return this.executeWritingPracticeUnit(
+          input.unitPlan,
+          context,
+          avoidContext,
+        );
       default:
         throw new Error(
           `Unknown unit type: ${(input.unitPlan as LessonPlanUnit).type}`,
@@ -183,6 +194,12 @@ export class UnitFactoryService {
 
       case 'conversation':
         return `IMPORTANT: Generate a completely different conversation. The previous conversation was: "${previousOutput.output.conversation.slice(0, 500)}...". Use different characters, different scenario, different dialogue.`;
+
+      case 'writing practice':
+        const prompts = previousOutput.output.prompts
+          .map((p) => p.prompt)
+          .join('; ');
+        return `IMPORTANT: Generate completely different writing prompts. DO NOT use any of these prompts or similar variations: ${prompts}`;
 
       default:
         return '';
@@ -418,6 +435,34 @@ export class UnitFactoryService {
     const output = await structuredLlm.invoke(prompt);
 
     return { type: 'conversation', plan: unit, output };
+  }
+
+  // ============================================================================
+  // WRITING PRACTICE GENERATION
+  // ============================================================================
+
+  private async executeWritingPracticeUnit(
+    unit: WritingPracticeUnit,
+    context: LessonContext,
+    avoidContext?: string,
+  ): Promise<CompiledUnit> {
+    let prompt = this.buildPrompt(WP_PROMPT_TEMPLATE, {
+      userLevel: context.userLevel,
+      targetLanguage: context.targetLanguage,
+      nativeLanguage: context.nativeLanguage,
+      instructions: unit.instructions,
+      promptCount: unit.promptCount.toString(),
+      userWordList: context.userWordList.join(', '),
+    });
+
+    if (avoidContext) {
+      prompt = `${avoidContext}\n\n${prompt}`;
+    }
+
+    const structuredLlm = this.llm.withStructuredOutput(WPOutputSchema);
+    const output = await structuredLlm.invoke(prompt);
+
+    return { type: 'writing practice', plan: unit, output };
   }
 
   // ============================================================================

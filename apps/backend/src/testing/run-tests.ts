@@ -16,6 +16,8 @@ import { CG_TEST_CONFIG } from './cases/conversation-generation.cases';
 import { CLG_TEST_CONFIG } from './cases/custom-lesson-generation.cases';
 import { EX_TEST_CONFIG } from './cases/explanation.cases';
 import { FC_TEST_CONFIG } from './cases/flashcard.cases';
+import { WP_TEST_CONFIG } from './cases/writing-practice.cases';
+import { WP_MARKING_TEST_CONFIG } from './cases/writing-practice-marking.cases';
 
 // ============================================================================
 // REGISTER FEATURES HERE
@@ -33,6 +35,8 @@ const FEATURES: Record<string, PromptTestConfig<any, any>> = {
   clg: CLG_TEST_CONFIG,
   ex: EX_TEST_CONFIG,
   fc: FC_TEST_CONFIG,
+  wp: WP_TEST_CONFIG,
+  wpm: WP_MARKING_TEST_CONFIG,
 };
 
 // ============================================================================

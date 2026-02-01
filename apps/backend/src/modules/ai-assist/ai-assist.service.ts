@@ -8,6 +8,12 @@ import {
   TranslateSelectionOutput,
   TranslateSelectionOutputSchema,
 } from '../../shared/types/ai-assist.types';
+import {
+  WPMarkingInput,
+  WPMarkingOutput,
+  WPMarkingOutputSchema,
+} from '../../shared/types/writing-practice.types';
+import { WP_MARKING_PROMPT_TEMPLATE } from '../../testing/cases/writing-practice-marking.cases';
 
 const EXPLAIN_WRONG_PROMPT = `
 You are a friendly language tutor helping a student understand their mistake.
@@ -93,6 +99,20 @@ export class AiAssistService {
     const structuredLlm = this.llm.withStructuredOutput(
       TranslateSelectionOutputSchema,
     );
+    return structuredLlm.invoke(prompt);
+  }
+
+  async markWritingPractice(input: WPMarkingInput): Promise<WPMarkingOutput> {
+    const prompt = WP_MARKING_PROMPT_TEMPLATE.replace(
+      '{{userLevel}}',
+      input.userLevel,
+    )
+      .replace('{{targetLanguage}}', input.targetLanguage)
+      .replace('{{nativeLanguage}}', input.nativeLanguage)
+      .replace('{{prompt}}', input.prompt)
+      .replace('{{userResponse}}', input.userResponse);
+
+    const structuredLlm = this.llm.withStructuredOutput(WPMarkingOutputSchema);
     return structuredLlm.invoke(prompt);
   }
 }

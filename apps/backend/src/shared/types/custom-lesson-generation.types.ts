@@ -6,6 +6,7 @@ import { WMMOutputSchema } from './word-meaning-match.types';
 import { WIBOutputSchema } from './write-in-blanks.types';
 import { EXOutputSchema } from './explanation.types';
 import { FCOutputSchema } from './flashcard.types';
+import { WPOutputSchema } from './writing-practice.types';
 
 // ============================================================================
 // UNIT INSTRUCTION SCHEMAS (from lesson plan)
@@ -104,6 +105,18 @@ export const FlashcardUnitSchema = z.object({
     .describe('The number of flashcards to generate (typically 5-10).'),
 });
 
+export const WritingPracticeUnitSchema = z.object({
+  type: z.literal('writing practice'),
+  instructions: z
+    .string()
+    .describe(
+      'The topic, theme, or type of prompts to generate (e.g., "Daily routines", "Opinion on technology", "Describe your ideal vacation").',
+    ),
+  promptCount: z
+    .number()
+    .describe('The number of writing prompts to generate (typically 2-4).'),
+});
+
 // ============================================================================
 // LESSON PLAN OUTPUT SCHEMA
 // ============================================================================
@@ -116,6 +129,7 @@ export const LessonPlanUnitSchema = z.discriminatedUnion('type', [
   WriteInBlanksUnitSchema,
   TranslationUnitSchema,
   ConversationUnitSchema,
+  WritingPracticeUnitSchema,
 ]);
 
 export const CLGOutputSchema = z.object({
@@ -173,6 +187,12 @@ export const CompiledFlashcardUnitSchema = z.object({
   output: FCOutputSchema,
 });
 
+export const CompiledWritingPracticeUnitSchema = z.object({
+  type: z.literal('writing practice'),
+  plan: WritingPracticeUnitSchema,
+  output: WPOutputSchema,
+});
+
 export const CompiledUnitSchema = z.discriminatedUnion('type', [
   CompiledFlashcardUnitSchema,
   CompiledExplanationUnitSchema,
@@ -181,6 +201,7 @@ export const CompiledUnitSchema = z.discriminatedUnion('type', [
   CompiledWriteInBlanksUnitSchema,
   CompiledTranslationUnitSchema,
   CompiledConversationUnitSchema,
+  CompiledWritingPracticeUnitSchema,
 ]);
 
 export const CompiledLessonSchema = z.object({
@@ -198,6 +219,7 @@ export type WriteInBlanksUnit = z.infer<typeof WriteInBlanksUnitSchema>;
 export type TranslationUnit = z.infer<typeof TranslationUnitSchema>;
 export type ConversationUnit = z.infer<typeof ConversationUnitSchema>;
 export type FlashcardUnit = z.infer<typeof FlashcardUnitSchema>;
+export type WritingPracticeUnit = z.infer<typeof WritingPracticeUnitSchema>;
 export type LessonPlanUnit = z.infer<typeof LessonPlanUnitSchema>;
 
 export type CLGOutput = z.infer<typeof CLGOutputSchema>;
@@ -219,5 +241,8 @@ export type CompiledConversationUnit = z.infer<
   typeof CompiledConversationUnitSchema
 >;
 export type CompiledFlashcardUnit = z.infer<typeof CompiledFlashcardUnitSchema>;
+export type CompiledWritingPracticeUnit = z.infer<
+  typeof CompiledWritingPracticeUnitSchema
+>;
 export type CompiledUnit = z.infer<typeof CompiledUnitSchema>;
 export type CompiledLesson = z.infer<typeof CompiledLessonSchema>;
