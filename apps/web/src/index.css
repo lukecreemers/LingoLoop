@@ -1,0 +1,73 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  font-family: "Inter", system-ui, Avenir, Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+
+  /* Bauhaus Palette - Revised */
+  --bauhaus-red: #e11d48; /* Rose-600 */
+  --bauhaus-blue: #2563eb; /* Blue-600 */
+  --bauhaus-green: #059669; /* Emerald-600 */
+  --bauhaus-black: #18181b; /* Zinc-900 */
+  --bauhaus-white: #fafafa; /* Zinc-50 */
+  --bauhaus-grey: #e4e4e7; /* Zinc-200 */
+
+  color-scheme: light dark;
+  color: var(--bauhaus-black);
+  background-color: var(--bauhaus-white);
+
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  margin: 0;
+  display: flex;
+  place-items: center;
+  min-width: 320px;
+  min-height: 100vh;
+  background-color: var(--bauhaus-white);
+  color: var(--bauhaus-black);
+}
+
+/* Custom Bauhaus Utilities */
+.bauhaus-shadow {
+  box-shadow: 4px 4px 0px var(--bauhaus-black);
+}
+
+.bauhaus-border {
+  border: 2px solid var(--bauhaus-black);
+}
+
+.text-bauhaus-red {
+  color: var(--bauhaus-red);
+}
+.bg-bauhaus-red {
+  background-color: var(--bauhaus-red);
+}
+
+.text-bauhaus-blue {
+  color: var(--bauhaus-blue);
+}
+.bg-bauhaus-blue {
+  background-color: var(--bauhaus-blue);
+}
+
+.text-bauhaus-green {
+  color: var(--bauhaus-green);
+}
+.bg-bauhaus-green {
+  background-color: var(--bauhaus-green);
+}
+
+.text-bauhaus-black {
+  color: var(--bauhaus-black);
+}
+.bg-bauhaus-black {
+  background-color: var(--bauhaus-black);
+}

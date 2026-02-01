@@ -30,6 +30,7 @@ export * from './fill-in-blanks.types';
 export * from './write-in-blanks.types';
 export * from './word-meaning-match.types';
 export * from './translation-marking.types';
+export * from './translation-marking.dto';
 export * from './translation-generation.types';
 export * from './story-generation.types';
 export * from './conversation-generation.types';
