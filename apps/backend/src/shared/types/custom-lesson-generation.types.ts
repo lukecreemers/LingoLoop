@@ -1,6 +1,16 @@
 import { z } from 'zod';
+import { SGOutputSchema } from './story-generation.types';
+import { CGOutputSchema } from './conversation-generation.types';
+import { FIBOutputSchema } from './fill-in-blanks.types';
+import { TGOutputSchema } from './translation-generation.types';
+import { WMMOutputSchema } from './word-meaning-match.types';
+import { WIBOutputSchema } from './write-in-blanks.types';
 
-const SGInstructionsSchema = z.object({
+// ============================================================================
+// UNIT INSTRUCTION SCHEMAS (from lesson plan)
+// ============================================================================
+
+export const StoryUnitSchema = z.object({
   type: z.literal('story'),
   instructions: z
     .string()
@@ -15,7 +25,7 @@ const SGInstructionsSchema = z.object({
     .describe('The length of the lesson.'),
 });
 
-const CGInstructionsSchema = z.object({
+export const ConversationUnitSchema = z.object({
   type: z.literal('conversation'),
   instructions: z
     .string()
@@ -25,7 +35,7 @@ const CGInstructionsSchema = z.object({
     .describe('The length of the conversation.'),
 });
 
-const FIBInstructionsSchema = z.object({
+export const FillInBlanksUnitSchema = z.object({
   type: z.literal('fill in the blanks'),
   instructions: z
     .string()
@@ -41,7 +51,7 @@ const FIBInstructionsSchema = z.object({
     .describe('The number of distractors to be generated for each sentence.'),
 });
 
-const TGInstructionsSchema = z.object({
+export const TranslationUnitSchema = z.object({
   type: z.literal('translation'),
   instructions: z
     .string()
@@ -59,7 +69,7 @@ const TGInstructionsSchema = z.object({
     .describe('The language the user will be translating into.'),
 });
 
-const WMMInstructionsSchema = z.object({
+export const WordMatchUnitSchema = z.object({
   type: z.literal('word meaning match'),
   matchType: z
     .string()
@@ -77,7 +87,7 @@ const WMMInstructionsSchema = z.object({
     .describe('The number of distractors to be generated.'),
 });
 
-const WIBInstructionsSchema = z.object({
+export const WriteInBlanksUnitSchema = z.object({
   type: z.literal('write in the blanks'),
   instructions: z
     .string()
@@ -87,21 +97,101 @@ const WIBInstructionsSchema = z.object({
   blankAmount: z.number().describe('The number of blanks in each sentence.'),
 });
 
+// ============================================================================
+// LESSON PLAN OUTPUT SCHEMA
+// ============================================================================
+
+export const LessonPlanUnitSchema = z.discriminatedUnion('type', [
+  StoryUnitSchema,
+  ConversationUnitSchema,
+  FillInBlanksUnitSchema,
+  TranslationUnitSchema,
+  WordMatchUnitSchema,
+  WriteInBlanksUnitSchema,
+]);
+
 export const CLGOutputSchema = z.object({
   units: z
-    .array(
-      z.discriminatedUnion('type', [
-        SGInstructionsSchema,
-        CGInstructionsSchema,
-        FIBInstructionsSchema,
-        TGInstructionsSchema,
-        WMMInstructionsSchema,
-        WIBInstructionsSchema,
-      ]),
-    )
+    .array(LessonPlanUnitSchema)
     .describe(
-      'A sequence of learning units tailored to the user’s request and level. Each unit has a specific type and set of instructions for a sub-agent to execute.',
+      'A sequence of learning units tailored to the user request and level. Each unit has a specific type and set of instructions for a sub-agent to execute.',
     ),
 });
 
+// ============================================================================
+// COMPILED OUTPUT SCHEMAS (after executing each unit)
+// ============================================================================
+
+export const CompiledStoryUnitSchema = z.object({
+  type: z.literal('story'),
+  output: SGOutputSchema,
+});
+
+export const CompiledConversationUnitSchema = z.object({
+  type: z.literal('conversation'),
+  output: CGOutputSchema,
+});
+
+export const CompiledFillInBlanksUnitSchema = z.object({
+  type: z.literal('fill in the blanks'),
+  output: FIBOutputSchema,
+});
+
+export const CompiledTranslationUnitSchema = z.object({
+  type: z.literal('translation'),
+  output: TGOutputSchema,
+});
+
+export const CompiledWordMatchUnitSchema = z.object({
+  type: z.literal('word meaning match'),
+  output: WMMOutputSchema,
+});
+
+export const CompiledWriteInBlanksUnitSchema = z.object({
+  type: z.literal('write in the blanks'),
+  output: WIBOutputSchema,
+});
+
+export const CompiledUnitSchema = z.discriminatedUnion('type', [
+  CompiledStoryUnitSchema,
+  CompiledConversationUnitSchema,
+  CompiledFillInBlanksUnitSchema,
+  CompiledTranslationUnitSchema,
+  CompiledWordMatchUnitSchema,
+  CompiledWriteInBlanksUnitSchema,
+]);
+
+export const CompiledLessonSchema = z.object({
+  units: z.array(CompiledUnitSchema),
+});
+
+// ============================================================================
+// TYPE EXPORTS
+// ============================================================================
+
+export type StoryUnit = z.infer<typeof StoryUnitSchema>;
+export type ConversationUnit = z.infer<typeof ConversationUnitSchema>;
+export type FillInBlanksUnit = z.infer<typeof FillInBlanksUnitSchema>;
+export type TranslationUnit = z.infer<typeof TranslationUnitSchema>;
+export type WordMatchUnit = z.infer<typeof WordMatchUnitSchema>;
+export type WriteInBlanksUnit = z.infer<typeof WriteInBlanksUnitSchema>;
+export type LessonPlanUnit = z.infer<typeof LessonPlanUnitSchema>;
+
 export type CLGOutput = z.infer<typeof CLGOutputSchema>;
+
+export type CompiledStoryUnit = z.infer<typeof CompiledStoryUnitSchema>;
+export type CompiledConversationUnit = z.infer<
+  typeof CompiledConversationUnitSchema
+>;
+export type CompiledFillInBlanksUnit = z.infer<
+  typeof CompiledFillInBlanksUnitSchema
+>;
+export type CompiledTranslationUnit = z.infer<
+  typeof CompiledTranslationUnitSchema
+>;
+export type CompiledWordMatchUnit = z.infer<typeof CompiledWordMatchUnitSchema>;
+export type CompiledWriteInBlanksUnit = z.infer<
+  typeof CompiledWriteInBlanksUnitSchema
+>;
+export type CompiledUnit = z.infer<typeof CompiledUnitSchema>;
+export type CompiledLesson = z.infer<typeof CompiledLessonSchema>;

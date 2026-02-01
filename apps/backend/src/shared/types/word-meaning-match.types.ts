@@ -10,8 +10,6 @@ export const WMMOutputSchema = z.object({
 
       pairs: z
         .array(z.tuple([z.string(), z.string()]))
-        .min(4)
-        .max(6)
         .describe('Pairs of strings that belong together.'),
 
       distractors: z
