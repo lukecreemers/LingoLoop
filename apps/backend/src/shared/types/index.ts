@@ -38,3 +38,4 @@ export * from './custom-lesson-generation.types';
 export * from './explanation.types';
 export * from './ai-assist.types';
 export * from './ai-assist.dto';
+export * from './redo-unit.dto';

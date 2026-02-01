@@ -114,35 +114,42 @@ export const CLGOutputSchema = z.object({
 
 // ============================================================================
 // COMPILED OUTPUT SCHEMAS (after executing each unit)
+// Each includes the original plan (instructions) for redo functionality
 // ============================================================================
 
 export const CompiledExplanationUnitSchema = z.object({
   type: z.literal('explanation'),
+  plan: ExplanationUnitSchema,
   output: EXOutputSchema,
 });
 
 export const CompiledFillInBlanksUnitSchema = z.object({
   type: z.literal('fill in the blanks'),
+  plan: FillInBlanksUnitSchema,
   output: FIBOutputSchema,
 });
 
 export const CompiledWordMatchUnitSchema = z.object({
   type: z.literal('word meaning match'),
+  plan: WordMatchUnitSchema,
   output: WMMOutputSchema,
 });
 
 export const CompiledWriteInBlanksUnitSchema = z.object({
   type: z.literal('write in the blanks'),
+  plan: WriteInBlanksUnitSchema,
   output: WIBOutputSchema,
 });
 
 export const CompiledTranslationUnitSchema = z.object({
   type: z.literal('translation'),
+  plan: TranslationUnitSchema,
   output: TGOutputSchema,
 });
 
 export const CompiledConversationUnitSchema = z.object({
   type: z.literal('conversation'),
+  plan: ConversationUnitSchema,
   output: CGOutputSchema,
 });
 
