@@ -3,13 +3,14 @@ import * as path from 'path';
 import { ChatAnthropic } from '@langchain/anthropic';
 import { ChatDeepSeek } from '@langchain/deepseek';
 import { ChatOpenAI } from '@langchain/openai';
+import { ChatGoogleGenerativeAI } from '@langchain/google-genai';
 import type { ZodSchema } from 'zod';
 
 // ============================================================================
 // TYPES
 // ============================================================================
 
-export type ModelProvider = 'anthropic' | 'openai' | 'deepseek';
+export type ModelProvider = 'anthropic' | 'openai' | 'deepseek' | 'google';
 
 export interface ModelConfig {
   provider: ModelProvider;
@@ -115,6 +116,12 @@ export class PromptTester<
           model,
           temperature,
           apiKey: process.env.DEEPSEEK_API_KEY,
+        });
+      case 'google':
+        return new ChatGoogleGenerativeAI({
+          model,
+          temperature,
+          apiKey: process.env.GOOGLE_API_KEY,
         });
       default:
         throw new Error(`Unknown provider: ${provider}`);

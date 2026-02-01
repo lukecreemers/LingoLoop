@@ -3,36 +3,35 @@ import { Injectable } from '@nestjs/common';
 
 // Schemas
 import {
-  SGOutputSchema,
   CGOutputSchema,
   FIBOutputSchema,
   TGOutputSchema,
   WMMOutputSchema,
   WIBOutputSchema,
+  EXOutputSchema,
 } from 'src/shared';
 import type {
   LessonPlanUnit,
   CompiledUnit,
-  StoryUnit,
-  ConversationUnit,
+  ExplanationUnit,
   FillInBlanksUnit,
-  TranslationUnit,
   WordMatchUnit,
   WriteInBlanksUnit,
+  TranslationUnit,
+  ConversationUnit,
 } from 'src/shared';
 
 // Prompt templates from test cases
-import { SG_PROMPT_TEMPLATE } from 'src/testing/cases/story-generation.cases';
-import { CG_PROMPT_TEMPLATE } from 'src/testing/cases/conversation-generation.cases';
+import { EX_PROMPT_TEMPLATE } from 'src/testing/cases/explanation.cases';
 import { FIB_PROMPT_TEMPLATE } from 'src/testing/cases/fill-in-blanks.cases';
-import { TG_PROMPT_TEMPLATE } from 'src/testing/cases/translation-generation.cases';
 import { WMM_PROMPT_TEMPLATE } from 'src/testing/cases/word-meaning-match.cases';
 import { WIB_PROMPT_TEMPLATE } from 'src/testing/cases/write-in-blanks.cases';
-
+import { TG_PROMPT_TEMPLATE } from 'src/testing/cases/translation-generation.cases';
+import { CG_PROMPT_TEMPLATE } from 'src/testing/cases/conversation-generation.cases';
 import type { LessonContext } from './lesson.context';
 
 // Batching configuration for exercise generation
-const TOTAL_EXERCISES = 10;
+const TOTAL_EXERCISES = 3;
 const MAX_BATCH_SIZE = 3;
 
 @Injectable()
@@ -54,18 +53,18 @@ export class UnitFactoryService {
     context: LessonContext,
   ): Promise<CompiledUnit> {
     switch (unit.type) {
-      case 'story':
-        return this.executeStoryUnit(unit, context);
-      case 'conversation':
-        return this.executeConversationUnit(unit, context);
+      case 'explanation':
+        return this.executeExplanationUnit(unit, context);
       case 'fill in the blanks':
         return this.executeFillInBlanksUnit(unit, context);
-      case 'translation':
-        return this.executeTranslationUnit(unit, context);
       case 'word meaning match':
         return this.executeWordMatchUnit(unit, context);
       case 'write in the blanks':
         return this.executeWriteInBlanksUnit(unit, context);
+      case 'translation':
+        return this.executeTranslationUnit(unit, context);
+      case 'conversation':
+        return this.executeConversationUnit(unit, context);
       default:
         throw new Error(`Unknown unit type: ${(unit as LessonPlanUnit).type}`);
     }
@@ -87,50 +86,25 @@ export class UnitFactoryService {
   }
 
   // ============================================================================
-  // STORY GENERATION
+  // EXPLANATION GENERATION
   // ============================================================================
 
-  private async executeStoryUnit(
-    unit: StoryUnit,
+  private async executeExplanationUnit(
+    unit: ExplanationUnit,
     context: LessonContext,
   ): Promise<CompiledUnit> {
-    const prompt = this.buildPrompt(SG_PROMPT_TEMPLATE, {
+    const prompt = this.buildPrompt(EX_PROMPT_TEMPLATE, {
       userLevel: context.userLevel,
       targetLanguage: context.targetLanguage,
       instructions: unit.instructions,
-      textType: unit.textType,
-      textLength: unit.length,
       userWordList: context.userWordList.join(', '),
       userGrammarList: context.userGrammarList.join(', '),
     });
 
-    const structuredLlm = this.llm.withStructuredOutput(SGOutputSchema);
+    const structuredLlm = this.llm.withStructuredOutput(EXOutputSchema);
     const output = await structuredLlm.invoke(prompt);
 
-    return { type: 'story', output };
-  }
-
-  // ============================================================================
-  // CONVERSATION GENERATION
-  // ============================================================================
-
-  private async executeConversationUnit(
-    unit: ConversationUnit,
-    context: LessonContext,
-  ): Promise<CompiledUnit> {
-    const prompt = this.buildPrompt(CG_PROMPT_TEMPLATE, {
-      userLevel: context.userLevel,
-      targetLanguage: context.targetLanguage,
-      instructions: unit.instructions,
-      conversationLength: unit.conversationLength,
-      userWordList: context.userWordList.join(', '),
-      userGrammarList: context.userGrammarList.join(', '),
-    });
-
-    const structuredLlm = this.llm.withStructuredOutput(CGOutputSchema);
-    const output = await structuredLlm.invoke(prompt);
-
-    return { type: 'conversation', output };
+    return { type: 'explanation', output };
   }
 
   // ============================================================================
@@ -169,29 +143,6 @@ export class UnitFactoryService {
     const allExercises = batchResults.flatMap((result) => result.exercises);
 
     return { type: 'fill in the blanks', output: { exercises: allExercises } };
-  }
-
-  // ============================================================================
-  // TRANSLATION GENERATION
-  // ============================================================================
-
-  private async executeTranslationUnit(
-    unit: TranslationUnit,
-    context: LessonContext,
-  ): Promise<CompiledUnit> {
-    const prompt = this.buildPrompt(TG_PROMPT_TEMPLATE, {
-      userLevel: context.userLevel,
-      instructions: unit.instructions,
-      sentenceCount: unit.sentenceCount.toString(),
-      startingLanguage: unit.startingLanguage,
-      languageToTranslateTo: unit.languageToTranslateTo,
-      userWordList: context.userWordList.join(', '),
-    });
-
-    const structuredLlm = this.llm.withStructuredOutput(TGOutputSchema);
-    const output = await structuredLlm.invoke(prompt);
-
-    return { type: 'translation', output };
   }
 
   // ============================================================================
@@ -251,6 +202,52 @@ export class UnitFactoryService {
     const allExercises = batchResults.flatMap((result) => result.exercises);
 
     return { type: 'write in the blanks', output: { exercises: allExercises } };
+  }
+
+  // ============================================================================
+  // TRANSLATION GENERATION
+  // ============================================================================
+
+  private async executeTranslationUnit(
+    unit: TranslationUnit,
+    context: LessonContext,
+  ): Promise<CompiledUnit> {
+    const prompt = this.buildPrompt(TG_PROMPT_TEMPLATE, {
+      userLevel: context.userLevel,
+      instructions: unit.instructions,
+      sentenceCount: unit.sentenceCount.toString(),
+      startingLanguage: unit.startingLanguage,
+      languageToTranslateTo: unit.languageToTranslateTo,
+      userWordList: context.userWordList.join(', '),
+    });
+
+    const structuredLlm = this.llm.withStructuredOutput(TGOutputSchema);
+    const output = await structuredLlm.invoke(prompt);
+
+    return { type: 'translation', output };
+  }
+
+  // ============================================================================
+  // CONVERSATION GENERATION
+  // ============================================================================
+
+  private async executeConversationUnit(
+    unit: ConversationUnit,
+    context: LessonContext,
+  ): Promise<CompiledUnit> {
+    const prompt = this.buildPrompt(CG_PROMPT_TEMPLATE, {
+      userLevel: context.userLevel,
+      targetLanguage: context.targetLanguage,
+      instructions: unit.instructions,
+      conversationLength: unit.conversationLength,
+      userWordList: context.userWordList.join(', '),
+      userGrammarList: context.userGrammarList.join(', '),
+    });
+
+    const structuredLlm = this.llm.withStructuredOutput(CGOutputSchema);
+    const output = await structuredLlm.invoke(prompt);
+
+    return { type: 'conversation', output };
   }
 
   // ============================================================================

@@ -1,38 +1,22 @@
 import { z } from 'zod';
-import { SGOutputSchema } from './story-generation.types';
 import { CGOutputSchema } from './conversation-generation.types';
 import { FIBOutputSchema } from './fill-in-blanks.types';
 import { TGOutputSchema } from './translation-generation.types';
 import { WMMOutputSchema } from './word-meaning-match.types';
 import { WIBOutputSchema } from './write-in-blanks.types';
+import { EXOutputSchema } from './explanation.types';
 
 // ============================================================================
 // UNIT INSTRUCTION SCHEMAS (from lesson plan)
 // ============================================================================
 
-export const StoryUnitSchema = z.object({
-  type: z.literal('story'),
+export const ExplanationUnitSchema = z.object({
+  type: z.literal('explanation'),
   instructions: z
-    .string()
-    .describe('The instructions for the text to be generated.'),
-  textType: z
     .string()
     .describe(
-      'The type of text to be generated (e.g. "story", "news article", "email", "retelling", "blog post").',
+      'The topic or concept to explain (e.g., "The difference between Por and Para", "When to use the subjunctive").',
     ),
-  length: z
-    .enum(['short', 'medium', 'long'])
-    .describe('The length of the lesson.'),
-});
-
-export const ConversationUnitSchema = z.object({
-  type: z.literal('conversation'),
-  instructions: z
-    .string()
-    .describe('The instructions for the conversation to be generated.'),
-  conversationLength: z
-    .enum(['short', 'medium', 'long'])
-    .describe('The length of the conversation.'),
 });
 
 export const FillInBlanksUnitSchema = z.object({
@@ -49,24 +33,6 @@ export const FillInBlanksUnitSchema = z.object({
   distractorCount: z
     .number()
     .describe('The number of distractors to be generated for each sentence.'),
-});
-
-export const TranslationUnitSchema = z.object({
-  type: z.literal('translation'),
-  instructions: z
-    .string()
-    .describe(
-      'The instructions for the translation exercise to be generated. ',
-    ),
-  sentenceCount: z
-    .number()
-    .describe('The number of sentences to be generated.'),
-  startingLanguage: z
-    .string()
-    .describe('The starting language of the exercise.'),
-  languageToTranslateTo: z
-    .string()
-    .describe('The language the user will be translating into.'),
 });
 
 export const WordMatchUnitSchema = z.object({
@@ -97,17 +63,45 @@ export const WriteInBlanksUnitSchema = z.object({
   blankAmount: z.number().describe('The number of blanks in each sentence.'),
 });
 
+export const TranslationUnitSchema = z.object({
+  type: z.literal('translation'),
+  instructions: z
+    .string()
+    .describe(
+      'The instructions for the translation exercise to be generated. ',
+    ),
+  sentenceCount: z
+    .number()
+    .describe('The number of sentences to be generated.'),
+  startingLanguage: z
+    .string()
+    .describe('The starting language of the exercise.'),
+  languageToTranslateTo: z
+    .string()
+    .describe('The language the user will be translating into.'),
+});
+
+export const ConversationUnitSchema = z.object({
+  type: z.literal('conversation'),
+  instructions: z
+    .string()
+    .describe('The instructions for the conversation to be generated.'),
+  conversationLength: z
+    .enum(['short', 'medium', 'long'])
+    .describe('The length of the conversation.'),
+});
+
 // ============================================================================
 // LESSON PLAN OUTPUT SCHEMA
 // ============================================================================
 
 export const LessonPlanUnitSchema = z.discriminatedUnion('type', [
-  StoryUnitSchema,
-  ConversationUnitSchema,
+  ExplanationUnitSchema,
   FillInBlanksUnitSchema,
-  TranslationUnitSchema,
   WordMatchUnitSchema,
   WriteInBlanksUnitSchema,
+  TranslationUnitSchema,
+  ConversationUnitSchema,
 ]);
 
 export const CLGOutputSchema = z.object({
@@ -122,24 +116,14 @@ export const CLGOutputSchema = z.object({
 // COMPILED OUTPUT SCHEMAS (after executing each unit)
 // ============================================================================
 
-export const CompiledStoryUnitSchema = z.object({
-  type: z.literal('story'),
-  output: SGOutputSchema,
-});
-
-export const CompiledConversationUnitSchema = z.object({
-  type: z.literal('conversation'),
-  output: CGOutputSchema,
+export const CompiledExplanationUnitSchema = z.object({
+  type: z.literal('explanation'),
+  output: EXOutputSchema,
 });
 
 export const CompiledFillInBlanksUnitSchema = z.object({
   type: z.literal('fill in the blanks'),
   output: FIBOutputSchema,
-});
-
-export const CompiledTranslationUnitSchema = z.object({
-  type: z.literal('translation'),
-  output: TGOutputSchema,
 });
 
 export const CompiledWordMatchUnitSchema = z.object({
@@ -152,13 +136,23 @@ export const CompiledWriteInBlanksUnitSchema = z.object({
   output: WIBOutputSchema,
 });
 
+export const CompiledTranslationUnitSchema = z.object({
+  type: z.literal('translation'),
+  output: TGOutputSchema,
+});
+
+export const CompiledConversationUnitSchema = z.object({
+  type: z.literal('conversation'),
+  output: CGOutputSchema,
+});
+
 export const CompiledUnitSchema = z.discriminatedUnion('type', [
-  CompiledStoryUnitSchema,
-  CompiledConversationUnitSchema,
+  CompiledExplanationUnitSchema,
   CompiledFillInBlanksUnitSchema,
-  CompiledTranslationUnitSchema,
   CompiledWordMatchUnitSchema,
   CompiledWriteInBlanksUnitSchema,
+  CompiledTranslationUnitSchema,
+  CompiledConversationUnitSchema,
 ]);
 
 export const CompiledLessonSchema = z.object({
@@ -169,29 +163,31 @@ export const CompiledLessonSchema = z.object({
 // TYPE EXPORTS
 // ============================================================================
 
-export type StoryUnit = z.infer<typeof StoryUnitSchema>;
-export type ConversationUnit = z.infer<typeof ConversationUnitSchema>;
+export type ExplanationUnit = z.infer<typeof ExplanationUnitSchema>;
 export type FillInBlanksUnit = z.infer<typeof FillInBlanksUnitSchema>;
-export type TranslationUnit = z.infer<typeof TranslationUnitSchema>;
 export type WordMatchUnit = z.infer<typeof WordMatchUnitSchema>;
 export type WriteInBlanksUnit = z.infer<typeof WriteInBlanksUnitSchema>;
+export type TranslationUnit = z.infer<typeof TranslationUnitSchema>;
+export type ConversationUnit = z.infer<typeof ConversationUnitSchema>;
 export type LessonPlanUnit = z.infer<typeof LessonPlanUnitSchema>;
 
 export type CLGOutput = z.infer<typeof CLGOutputSchema>;
 
-export type CompiledStoryUnit = z.infer<typeof CompiledStoryUnitSchema>;
-export type CompiledConversationUnit = z.infer<
-  typeof CompiledConversationUnitSchema
+export type CompiledExplanationUnit = z.infer<
+  typeof CompiledExplanationUnitSchema
 >;
 export type CompiledFillInBlanksUnit = z.infer<
   typeof CompiledFillInBlanksUnitSchema
 >;
-export type CompiledTranslationUnit = z.infer<
-  typeof CompiledTranslationUnitSchema
->;
 export type CompiledWordMatchUnit = z.infer<typeof CompiledWordMatchUnitSchema>;
 export type CompiledWriteInBlanksUnit = z.infer<
   typeof CompiledWriteInBlanksUnitSchema
+>;
+export type CompiledTranslationUnit = z.infer<
+  typeof CompiledTranslationUnitSchema
+>;
+export type CompiledConversationUnit = z.infer<
+  typeof CompiledConversationUnitSchema
 >;
 export type CompiledUnit = z.infer<typeof CompiledUnitSchema>;
 export type CompiledLesson = z.infer<typeof CompiledLessonSchema>;

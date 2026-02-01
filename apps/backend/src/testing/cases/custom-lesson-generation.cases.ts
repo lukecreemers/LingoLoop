@@ -20,36 +20,20 @@ export interface CLGInputs extends Record<string, string | number | string[]> {
 const UNIT_EXPLANATIONS = `
 ### AVAILABLE UNIT TYPES AND SUB-AGENT REQUIREMENTS
 
-**1. story (SG Agent)**
-Generates a cohesive, level-appropriate text. You must provide a clear "Scenario" and "Tone."
-- instructions: Detailed plot, characters, or specific topics. Focus on narrative or informative context.
-- textType: Specific format (e.g., "news article", "formal email", "blog post", "short story").
-- length: "short" (3-5 sentences), "medium" (6-10 sentences), or "long" (11-15 sentences).
-*Critical Goal: Ensure tone consistency (formal/informal) and authentic, non-textbook language.*
+**1. explanation (EX Agent)**
+Generates a clear, pedagogical explanation in English about a specific linguistic concept.
+- instructions: The topic or concept to explain (e.g., "The difference between Por and Para", "When to use the subjunctive in relative clauses").
+*Critical Goal: Level-appropriate clarity. Beginners get simple language with 2-3 examples; Advanced gets nuance, regional variations, and linguistic comparisons. Use this BEFORE drilling exercises to set context.*
 
-**2. conversation (CG Agent)**
-Generates a script between two distinct characters. 
-- instructions: A specific situation or conflict (e.g., "Arguing over a late train").
-- conversationLength: "short" (4-6 turns), "medium" (8-12 turns), or "long" (14-20 turns).
-*Critical Goal: The agent will create names, ages, and genders for characters. Instructions should hint at the dynamic between them.*
-
-**3. fill in the blanks (FIB Agent)**
+**2. fill in the blanks (FIB Agent)**
 A deterministic grammar/vocabulary test with multiple-choice options.
-- instructions: A STRICTURE grammar focus (e.g., "Preterite of irregular verbs" or "Direct object pronouns").
+- instructions: A STRICT grammar focus (e.g., "Preterite of irregular verbs" or "Direct object pronouns").
 - blankAmount: Number of [ * ] blanks per sentence. 
 - distractorInstructions: Logic for "near-miss" distractors (e.g., "use same verb in different person" or "use synonyms that don't fit the gender").
 - distractorCount: Typically 2-4 distractors per blank.
 *Critical Goal: Zero Ambiguity. Sentences must be written so that only the correct answer is logically possible.*
 
-**4. translation (TG Agent)**
-Generates a unified paragraph (not disconnected sentences) for the user to translate.
-- instructions: A coherent theme or topic for the paragraph.
-- sentenceCount: Typically 3-6 sentences.
-- startingLanguage: The language the user reads.
-- languageToTranslateTo: The language the user must type in.
-*Critical Goal: The paragraph must read like native speech and maintain a unified thematic thread.*
-
-**5. word meaning match (WMM Agent)**
+**3. word meaning match (WMM Agent)**
 A matching exercise for vocabulary or grammatical associations.
 - matchType: The relationship (e.g., "Infinitive → English", "Noun → Correct Article", "Opposites").
 - theme: Thematic grouping (e.g., "Kitchen vocabulary", "Emotions").
@@ -57,11 +41,25 @@ A matching exercise for vocabulary or grammatical associations.
 - distractorCount: "Near-miss" items that fit the theme but have no match (2-4).
 *Critical Goal: Column items must be balanced in complexity to prevent guessing by length.*
 
-**6. write in the blanks (WIB Agent)**
+**4. write in the blanks (WIB Agent)**
 High-stakes production where the user types the answer based on a clue.
 - instructions: The specific word/grammar target (e.g., "Reflexive verbs in present tense").
 - blankAmount: Number of [ * ] blanks.
 *Critical Goal: Clue Integration. Every blank must have a root word/clue (e.g., an infinitive) provided in the instructions so the user knows what to transform.*
+
+**5. translation (TG Agent)**
+Generates a unified paragraph (not disconnected sentences) for the user to translate.
+- instructions: A coherent theme or topic for the paragraph.
+- sentenceCount: Typically 1-2 sentences but longer if requested.
+- startingLanguage: The language the user reads.
+- languageToTranslateTo: The language the user must type in.
+*Critical Goal: The paragraph must read like native speech and maintain a unified thematic thread.*
+
+**6. conversation (CG Agent)**
+Generates a script between two distinct characters. 
+- instructions: A specific situation or conflict (e.g., "Arguing over a late train").
+- conversationLength: "short" (4-6 turns), "medium" (8-12 turns), or "long" (14-20 turns).
+*Critical Goal: The agent will create names, ages, and genders for characters. Instructions should hint at the dynamic between them.*
 `.trim();
 
 // ============================================================================
@@ -70,29 +68,47 @@ High-stakes production where the user types the answer based on a clue.
 
 export const CLG_PROMPT_TEMPLATE = `
 ### ROLE
-You are part of a pipeline creating a custom lesson plan for a {{targetLanguage}} student. You will be passed instructions on what the custom lesson needs to be about, and create a sequence of learning units along with their instructions that specialized sub-agents will execute.
+You are a Senior Pedagogical Director specializing in Micro-Learning. Your task is to break down complex linguistic requests into a series of "Atomic Learning Loops."
 
 ### USER PROFILE
-- **Level:** {{userLevel}}
-- **Target Language:** {{targetLanguage}}
-- **Native Language:** {{nativeLanguage}}
+- Level: {{userLevel}}
+- Target: {{targetLanguage}} / Native: {{nativeLanguage}}
+
+### PEDAGOGICAL STRATEGY (The "Micro-Loop")
+If the concept is complex relative to the users level, do NOT explain everything at once. Instead, break the {{instructions}} into 2-3 granular sub-concepts. For each sub-concept, generate a "Loop":
+
+1.  **ATOMIC EXPLANATION:** An 'explanation' unit limited to ONE specific rule or use case. (e.g., "Ser for Professions" only).
+2.  **TARGETED DRILL:** atleast 2 low-stakes units (FIB or WMM) that test ONLY the rule just explained.
+3.  **PRODUCTION:** Either a WIB or TG unit that forces the user to use the rule in context.
+
+At the end of all loops do an **INTEGRATION (The Bridge):** After 2-3 loops, provide atleast 2 "Production" units (WIB, TG, or CG) that forces the user to use all sub-concepts together in context.
+
+### ATOMIC BREAKDOWN RULES
+- **Concept Isolation:** Never introduce two different grammar rules in the same 'explanation' unit.
+- **Immediate Validation:** Every 'explanation' MUST be immediately followed by a 'fill in the blanks' or 'word meaning match' with very explicit instructions on what to focus on.
+- **Complexity Cap:** For beginner students, ensure the vocabulary in early loops is extremely simple so they can focus 100% on the grammar mechanic.
+
+### LEVEL-SPECIFIC CONSTRAINTS
+- **Beginner:** Focus on 2 loops max. Conversation MUST be "short". For production units, avoid TG and CG and priotise just exremely short and targeted WIB units (only 1 blank).
+- **Intermediate:** Focus on 2-3 loops. Mixed production is key, keep.
+- **Advanced:** 6-8 units. Loops should cover subtle nuances or regionalisms.
 
 ### LESSON REQUEST
 {{instructions}}
 
+---
+### TOOLKIT: AVAILABLE UNIT TYPES
 ${UNIT_EXPLANATIONS}
+---
 
 ### YOUR TASK
-Design a lesson plan by outputting an array of units. This array needs to be in a logical order that will help the user understand the concept as best as possible. Each unit should:
-1. Be appropriate for the user's level ({{userLevel}})
-2. Build logically on previous units (e.g., introduce vocabulary before testing it)
-3. Include clear, specific instructions for the sub-agent
-4. Use varied unit types to keep the lesson engaging
+1.  **Deconstruct:** If needed break the lesson request into 2-3 atomic sub-concepts.
+2.  **Sequence:** Build the lesson using the "Loop" structure: [Exp 1 -> Drill 1 -> Exp 2 -> Drill 2 -> Integration].
+3.  **Precision:** Ensure the 'instructions' for the drills specify exactly which sub-concept to focus on and are very specific.
+4.  **REUSE:** You are encouraged to use the same unit type (like FIB) multiple times if it serves different loops.
 
-## CONSTRAINTS
-Pedagogical Flow: Use a logical flow in terms of unit order to optimize user learning
-Unit Understanding: The subagents only have the context that you feed it, thus you need to be extremely clear in your instructions.
-Keep the units varied and engaging (you are welcome to be creative with prompts particularly for story and conversation generation, keeping in mind user level).
+### OUTPUT FORMAT
+Return a JSON array of unit objects.
 `.trim();
 
 // ============================================================================
@@ -136,99 +152,6 @@ export const CLG_TEST_CASES: TestCase<CLGInputs>[] = [
       nativeLanguage: 'English',
       instructions:
         'Create a custom lesson on the differences between "ser" and "estar," focusing on permanent vs. temporary states.',
-    },
-  },
-
-  // --------------------------------------------------------------------------
-  // INTERMEDIATE: Logic & Mechanics
-  // --------------------------------------------------------------------------
-  {
-    name: 'Intermediate - Past Tense Contrast',
-    description: 'High-stakes grammar. Tests narrative sequencing.',
-    inputs: {
-      userLevel: 'intermediate',
-      targetLanguage: 'Spanish',
-      nativeLanguage: 'English',
-      instructions:
-        'Create a custom lesson on the contrast between the preterite and imperfect tenses, focusing on how to set a scene versus describing completed actions.',
-    },
-  },
-  {
-    name: 'Intermediate - Business Etiquette',
-    description: 'Tests formality registers and professional vocabulary.',
-    inputs: {
-      userLevel: 'intermediate',
-      targetLanguage: 'French',
-      nativeLanguage: 'English',
-      instructions:
-        'Create a custom lesson on professional email writing, focusing specifically on formal salutations, polite requests, and standard sign-off conventions.',
-    },
-  },
-
-  // --------------------------------------------------------------------------
-  // ADVANCED: Nuance & Depth
-  // --------------------------------------------------------------------------
-  {
-    name: 'Advanced - Subjunctive Mastery',
-    description:
-      'Complex logic. Tests if the model creates high-precision exercises.',
-    inputs: {
-      userLevel: 'advanced',
-      targetLanguage: 'Spanish',
-      nativeLanguage: 'English',
-      instructions:
-        'Create a custom lesson on the subjunctive mood in relative clauses and hypothetical "Si" statements where the outcome is unlikely.',
-    },
-  },
-  {
-    name: 'Advanced - Sociopolitical Debate',
-    description: 'Tests abstract vocabulary and formal discourse markers.',
-    inputs: {
-      userLevel: 'advanced',
-      targetLanguage: 'Spanish',
-      nativeLanguage: 'English',
-      instructions:
-        'Create a custom lesson on discussing climate change and economic policy, focusing on sophisticated connectors for debating and expressing nuance.',
-    },
-  },
-
-  // --------------------------------------------------------------------------
-  // EDGE CASES: Stress Tests
-  // --------------------------------------------------------------------------
-  {
-    name: 'Edge Case - The Irregular Triple-Threat',
-    description:
-      'Tests if the model can handle a very specific, high-density verb drill.',
-    inputs: {
-      userLevel: 'intermediate',
-      targetLanguage: 'Spanish',
-      nativeLanguage: 'English',
-      instructions:
-        'Create a custom lesson on how to conjugate "hacer," "ir," and "ser" in both the imperfect and preterite tenses.',
-    },
-  },
-  {
-    name: 'Edge Case - Hyper-Niche Survival',
-    description:
-      'Tests if the model respects a very narrow scope without adding "fluff."',
-    inputs: {
-      userLevel: 'beginner',
-      targetLanguage: 'Japanese',
-      nativeLanguage: 'English',
-      instructions:
-        'Create a custom lesson strictly on the vocabulary and phrases required to order ramen and beer in a social setting.',
-    },
-  },
-  {
-    name: 'Edge Case - Multimodal Weakness Remediation',
-    description:
-      'Tests if the model can pivot unit selection based on specific skill deficits.',
-    inputs: {
-      userLevel: 'intermediate',
-      targetLanguage: 'Portuguese',
-      nativeLanguage: 'English',
-      instructions:
-        'Create a custom lesson that remediates weak listening comprehension and speaking skills by leveraging the user’s strong reading ability.',
     },
   },
 ];

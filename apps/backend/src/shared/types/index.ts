@@ -35,3 +35,6 @@ export * from './translation-generation.types';
 export * from './story-generation.types';
 export * from './conversation-generation.types';
 export * from './custom-lesson-generation.types';
+export * from './explanation.types';
+export * from './ai-assist.types';
+export * from './ai-assist.dto';
