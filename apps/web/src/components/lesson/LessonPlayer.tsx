@@ -132,8 +132,8 @@ export default function LessonPlayer({
   return (
     <div className="h-full flex flex-col bg-bauhaus-white overflow-hidden">
       {/* Top Progress Bar */}
-      <div className="shrink-0 px-4 pt-4 pb-2 border-b-2 border-zinc-100">
-        <div className="max-w-3xl mx-auto flex items-center gap-4">
+      <div className="shrink-0 px-4 pt-4 pb-2 border-b-2 border-zinc-100 flex justify-center">
+        <div className="w-[56rem] shrink-0 flex items-center gap-4">
           {/* Close Button */}
           {onClose && (
             <button
@@ -163,9 +163,11 @@ export default function LessonPlayer({
         </div>
       </div>
 
-      {/* Unit Content */}
-      <div className="flex-1 min-h-0 overflow-hidden">
-        <UnitDispatcher unit={currentUnit} onComplete={handleUnitComplete} />
+      {/* Unit Content - Fixed width wrapper to prevent resizing between units */}
+      <div className="flex-1 min-h-0 overflow-hidden flex justify-center">
+        <div className="h-full w-[56rem] shrink-0">
+          <UnitDispatcher unit={currentUnit} onComplete={handleUnitComplete} />
+        </div>
       </div>
     </div>
   );

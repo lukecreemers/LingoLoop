@@ -31,7 +31,7 @@ export default function Story({ data, onComplete }: StoryProps) {
   return (
     <div className="h-[calc(100vh-50px)] bg-bauhaus-white text-black font-sans flex flex-col selection:bg-blue-200 overflow-hidden">
       {/* Header */}
-      <header className="px-8 pt-8 pb-4 max-w-3xl mx-auto w-full shrink-0">
+      <header className="px-8 pt-8 pb-4 w-full shrink-0">
         <div className="flex items-end justify-between mb-4 border-b-4 border-black pb-4">
           <div>
             <h1 className="text-4xl font-black tracking-tighter leading-none">
@@ -42,7 +42,7 @@ export default function Story({ data, onComplete }: StoryProps) {
       </header>
 
       {/* Story Content */}
-      <main className="flex-1 max-w-3xl mx-auto w-full px-8 flex flex-col min-h-0 py-4 overflow-hidden">
+      <main className="flex-1 w-full px-8 flex flex-col min-h-0 py-4 overflow-hidden">
         <div className="flex-1 bg-white border-2 border-black bauhaus-shadow flex flex-col overflow-hidden">
           {/* Story Text */}
           <div className="flex-1 overflow-y-auto p-8 text-start">
@@ -90,7 +90,7 @@ export default function Story({ data, onComplete }: StoryProps) {
 
       {/* Footer Actions */}
       <footer className="shrink-0 bg-white border-t-4 border-black p-6 z-10">
-        <div className="max-w-3xl mx-auto flex justify-end">
+        <div className="w-full flex justify-end">
           <button
             onClick={handleContinue}
             className="px-10 py-4 text-lg font-bold uppercase tracking-widest border-2 border-black

@@ -9,6 +9,7 @@ import {
   WMMOutputSchema,
   WIBOutputSchema,
   EXOutputSchema,
+  FCOutputSchema,
 } from 'src/shared';
 import type {
   LessonPlanUnit,
@@ -19,6 +20,7 @@ import type {
   WriteInBlanksUnit,
   TranslationUnit,
   ConversationUnit,
+  FlashcardUnit,
 } from 'src/shared';
 import type { RedoUnitInput } from 'src/shared/types/redo-unit.dto';
 
@@ -29,6 +31,7 @@ import { WMM_PROMPT_TEMPLATE } from 'src/testing/cases/word-meaning-match.cases'
 import { WIB_PROMPT_TEMPLATE } from 'src/testing/cases/write-in-blanks.cases';
 import { TG_PROMPT_TEMPLATE } from 'src/testing/cases/translation-generation.cases';
 import { CG_PROMPT_TEMPLATE } from 'src/testing/cases/conversation-generation.cases';
+import { FC_PROMPT_TEMPLATE } from 'src/testing/cases/flashcard.cases';
 import type { LessonContext } from './lesson.context';
 import { DEFAULT_WORD_LIST, DEFAULT_GRAMMAR_LIST } from './lesson.context';
 
@@ -55,6 +58,8 @@ export class UnitFactoryService {
     context: LessonContext,
   ): Promise<CompiledUnit> {
     switch (unit.type) {
+      case 'flashcard':
+        return this.executeFlashcardUnit(unit, context);
       case 'explanation':
         return this.executeExplanationUnit(unit, context);
       case 'fill in the blanks':
@@ -104,6 +109,8 @@ export class UnitFactoryService {
     const avoidContext = this.buildAvoidContext(input.previousOutput);
 
     switch (input.unitPlan.type) {
+      case 'flashcard':
+        return this.executeFlashcardUnit(input.unitPlan, context, avoidContext);
       case 'explanation':
         return this.executeExplanationUnit(
           input.unitPlan,
@@ -148,6 +155,10 @@ export class UnitFactoryService {
    */
   private buildAvoidContext(previousOutput: CompiledUnit): string {
     switch (previousOutput.type) {
+      case 'flashcard':
+        const terms = previousOutput.output.cards.map((c) => c.term).join(', ');
+        return `IMPORTANT: Generate completely different flashcards. DO NOT use any of these terms: ${terms}. Choose different vocabulary within the same theme.`;
+
       case 'explanation':
         // Summarize key points to avoid repeating
         const explanation = previousOutput.output.explanation;
@@ -176,6 +187,34 @@ export class UnitFactoryService {
       default:
         return '';
     }
+  }
+
+  // ============================================================================
+  // FLASHCARD GENERATION
+  // ============================================================================
+
+  private async executeFlashcardUnit(
+    unit: FlashcardUnit,
+    context: LessonContext,
+    avoidContext?: string,
+  ): Promise<CompiledUnit> {
+    let prompt = this.buildPrompt(FC_PROMPT_TEMPLATE, {
+      userLevel: context.userLevel,
+      targetLanguage: context.targetLanguage,
+      nativeLanguage: context.nativeLanguage,
+      instructions: unit.instructions,
+      cardCount: unit.cardCount.toString(),
+      userWordList: context.userWordList.join(', '),
+    });
+
+    if (avoidContext) {
+      prompt = `${avoidContext}\n\n${prompt}`;
+    }
+
+    const structuredLlm = this.llm.withStructuredOutput(FCOutputSchema);
+    const output = await structuredLlm.invoke(prompt);
+
+    return { type: 'flashcard', plan: unit, output };
   }
 
   // ============================================================================

@@ -15,6 +15,7 @@ import { SG_TEST_CONFIG } from './cases/story-generation.cases';
 import { CG_TEST_CONFIG } from './cases/conversation-generation.cases';
 import { CLG_TEST_CONFIG } from './cases/custom-lesson-generation.cases';
 import { EX_TEST_CONFIG } from './cases/explanation.cases';
+import { FC_TEST_CONFIG } from './cases/flashcard.cases';
 
 // ============================================================================
 // REGISTER FEATURES HERE
@@ -31,6 +32,7 @@ const FEATURES: Record<string, PromptTestConfig<any, any>> = {
   cg: CG_TEST_CONFIG,
   clg: CLG_TEST_CONFIG,
   ex: EX_TEST_CONFIG,
+  fc: FC_TEST_CONFIG,
 };
 
 // ============================================================================

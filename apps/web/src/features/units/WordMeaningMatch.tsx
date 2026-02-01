@@ -165,7 +165,7 @@ export default function WordMeaningMatch({
   return (
     <div className="h-[calc(100vh-50px)] bg-bauhaus-white text-black font-sans flex flex-col selection:bg-rose-200 overflow-x-hidden overflow-y-auto">
       {/* Header */}
-      <header className="px-8 pt-8 pb-4 max-w-5xl mx-auto w-full shrink-0">
+      <header className="px-8 pt-8 pb-4 w-full shrink-0">
         <div className="flex items-end justify-between mb-6 border-b-4 border-black pb-4">
           <div>
             <h1 className="text-4xl font-black tracking-tighter leading-none">
@@ -196,7 +196,7 @@ export default function WordMeaningMatch({
       </header>
 
       {/* Main Content */}
-      <main className="flex-1 max-w-5xl mx-auto w-full px-8 flex flex-col py-4">
+      <main className="flex-1 w-full px-8 flex flex-col py-4">
         {/* Instruction */}
         <p className="text-center text-zinc-500 mb-4 shrink-0">
           {currentExercise.instruction}
@@ -404,7 +404,7 @@ export default function WordMeaningMatch({
 
       {/* Footer Actions */}
       <footer className="shrink-0 bg-white border-t-4 border-black p-6 z-10">
-        <div className="max-w-5xl mx-auto flex justify-end gap-4">
+        <div className="w-full flex justify-end gap-4">
           {isChecked && isLastExercise && (
             <RedoButton
               unitPlan={plan}

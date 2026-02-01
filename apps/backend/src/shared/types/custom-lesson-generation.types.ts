@@ -5,6 +5,7 @@ import { TGOutputSchema } from './translation-generation.types';
 import { WMMOutputSchema } from './word-meaning-match.types';
 import { WIBOutputSchema } from './write-in-blanks.types';
 import { EXOutputSchema } from './explanation.types';
+import { FCOutputSchema } from './flashcard.types';
 
 // ============================================================================
 // UNIT INSTRUCTION SCHEMAS (from lesson plan)
@@ -91,11 +92,24 @@ export const ConversationUnitSchema = z.object({
     .describe('The length of the conversation.'),
 });
 
+export const FlashcardUnitSchema = z.object({
+  type: z.literal('flashcard'),
+  instructions: z
+    .string()
+    .describe(
+      'The vocabulary theme or list of words/phrases to teach (e.g., "Basic greetings", "Food vocabulary", "Numbers 1-20").',
+    ),
+  cardCount: z
+    .number()
+    .describe('The number of flashcards to generate (typically 5-10).'),
+});
+
 // ============================================================================
 // LESSON PLAN OUTPUT SCHEMA
 // ============================================================================
 
 export const LessonPlanUnitSchema = z.discriminatedUnion('type', [
+  FlashcardUnitSchema,
   ExplanationUnitSchema,
   FillInBlanksUnitSchema,
   WordMatchUnitSchema,
@@ -153,7 +167,14 @@ export const CompiledConversationUnitSchema = z.object({
   output: CGOutputSchema,
 });
 
+export const CompiledFlashcardUnitSchema = z.object({
+  type: z.literal('flashcard'),
+  plan: FlashcardUnitSchema,
+  output: FCOutputSchema,
+});
+
 export const CompiledUnitSchema = z.discriminatedUnion('type', [
+  CompiledFlashcardUnitSchema,
   CompiledExplanationUnitSchema,
   CompiledFillInBlanksUnitSchema,
   CompiledWordMatchUnitSchema,
@@ -176,6 +197,7 @@ export type WordMatchUnit = z.infer<typeof WordMatchUnitSchema>;
 export type WriteInBlanksUnit = z.infer<typeof WriteInBlanksUnitSchema>;
 export type TranslationUnit = z.infer<typeof TranslationUnitSchema>;
 export type ConversationUnit = z.infer<typeof ConversationUnitSchema>;
+export type FlashcardUnit = z.infer<typeof FlashcardUnitSchema>;
 export type LessonPlanUnit = z.infer<typeof LessonPlanUnitSchema>;
 
 export type CLGOutput = z.infer<typeof CLGOutputSchema>;
@@ -196,5 +218,6 @@ export type CompiledTranslationUnit = z.infer<
 export type CompiledConversationUnit = z.infer<
   typeof CompiledConversationUnitSchema
 >;
+export type CompiledFlashcardUnit = z.infer<typeof CompiledFlashcardUnitSchema>;
 export type CompiledUnit = z.infer<typeof CompiledUnitSchema>;
 export type CompiledLesson = z.infer<typeof CompiledLessonSchema>;

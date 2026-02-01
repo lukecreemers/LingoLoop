@@ -388,7 +388,7 @@ export default function Explanation({
   return (
     <div className="h-[calc(100vh-50px)] bg-bauhaus-white text-black font-sans flex flex-col selection:bg-yellow-200 overflow-hidden">
       {/* Header */}
-      <header className="px-8 pt-8 pb-4 max-w-3xl mx-auto w-full shrink-0">
+      <header className="px-8 pt-8 pb-4 w-full shrink-0">
         <div className="flex items-end justify-between mb-4 border-b-4 border-black pb-4">
           <div>
             <h1 className="text-4xl font-black tracking-tighter leading-none">
@@ -405,7 +405,7 @@ export default function Explanation({
       </header>
 
       {/* Explanation Content */}
-      <main className="flex-1 max-w-3xl mx-auto w-full px-8 flex flex-col min-h-0 py-4 overflow-hidden">
+      <main className="flex-1 w-full px-8 flex flex-col min-h-0 py-4 overflow-hidden">
         <div className="flex-1 bg-white border-2 border-black bauhaus-shadow flex flex-col overflow-hidden">
           {/* Content */}
           <div className="flex-1 overflow-y-auto p-8">
@@ -435,7 +435,7 @@ export default function Explanation({
 
       {/* Footer Actions */}
       <footer className="shrink-0 bg-white border-t-4 border-black p-6 z-10">
-        <div className="max-w-3xl mx-auto flex justify-between items-center">
+        <div className="w-full flex justify-between items-center">
           <p className="text-sm text-zinc-400 italic">
             Take your time to understand before continuing
           </p>

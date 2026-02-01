@@ -54,7 +54,7 @@ export default function UnitShell({
       />
 
       {/* Main Content Area */}
-      <main className="flex-1 max-w-3xl mx-auto w-full px-8 flex flex-col min-h-0 py-4 overflow-hidden">
+      <main className="flex-1 max-w-4xl mx-auto w-full px-8 flex flex-col min-h-0 py-4 overflow-hidden">
         {children}
       </main>
 

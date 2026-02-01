@@ -94,7 +94,7 @@ export default function WriteInBlanks({
   return (
     <div className="h-[calc(100vh-50px)] bg-bauhaus-white text-black font-sans flex flex-col selection:bg-rose-200 overflow-hidden">
       {/* Header - Fixed Height */}
-      <header className="px-8 pt-8 pb-4 max-w-5xl mx-auto w-full shrink-0">
+      <header className="px-8 pt-8 pb-4 w-full shrink-0">
         <div className="flex items-end justify-between mb-6 border-b-4 border-black pb-4">
           <div>
             <h1 className="text-4xl font-black tracking-tighter leading-none">
@@ -125,7 +125,7 @@ export default function WriteInBlanks({
       </header>
 
       {/* Main Content - Flex Grow to fill space */}
-      <main className="flex-1 max-w-5xl mx-auto w-full px-8 flex flex-col min-h-0 py-4">
+      <main className="flex-1 w-full px-8 flex flex-col min-h-0 py-4">
         {/* Sentence Container - Flex Grow with max height constraint */}
         <div className="flex-1 bg-white border-2 border-black p-8 bauhaus-shadow flex flex-col relative min-h-0 mb-6">
           {/* Scrollable Sentence Area if text is very long */}
@@ -184,7 +184,7 @@ export default function WriteInBlanks({
 
       {/* Footer Actions - Fixed Height */}
       <footer className="shrink-0 bg-white border-t-4 border-black p-6 z-10">
-        <div className="max-w-5xl mx-auto flex justify-end gap-4">
+        <div className="w-full flex justify-end gap-4">
           {isChecked && isLastExercise && (
             <RedoButton
               unitPlan={plan}

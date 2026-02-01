@@ -8,6 +8,55 @@ import { useLessonStore } from "./stores/useLessonStore";
 const demoLessonData: CompiledLesson = {
   units: [
     {
+      type: "flashcard",
+      plan: {
+        type: "flashcard",
+        instructions: "Basic greeting vocabulary for introductions",
+        cardCount: 6,
+      },
+      output: {
+        theme: "Greetings & Introductions",
+        cards: [
+          {
+            term: "Hola",
+            definition: "Hello / Hi",
+            example: "¡Hola! ¿Cómo estás?",
+            exampleTranslation: "Hello! How are you?",
+          },
+          {
+            term: "Me llamo",
+            definition: "My name is (lit. I call myself)",
+            example: "Me llamo María.",
+            exampleTranslation: "My name is María.",
+          },
+          {
+            term: "Mucho gusto",
+            definition: "Nice to meet you (lit. Much pleasure)",
+            example: "Mucho gusto, Juan.",
+            exampleTranslation: "Nice to meet you, Juan.",
+          },
+          {
+            term: "¿Cómo te llamas?",
+            definition: "What's your name? (informal)",
+            example: "¡Hola! ¿Cómo te llamas?",
+            exampleTranslation: "Hello! What's your name?",
+          },
+          {
+            term: "Soy de...",
+            definition: "I'm from...",
+            example: "Soy de México.",
+            exampleTranslation: "I'm from Mexico.",
+          },
+          {
+            term: "¿De dónde eres?",
+            definition: "Where are you from? (informal)",
+            example: "¿De dónde eres tú?",
+            exampleTranslation: "Where are you from?",
+          },
+        ],
+      },
+    },
+    {
       type: "conversation",
       plan: {
         type: "conversation",

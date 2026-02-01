@@ -1,6 +1,7 @@
 import type { CompiledUnit } from "@shared";
 
 // Import all unit components
+import Flashcard from "../../features/units/Flashcard";
 import Explanation from "../../features/units/Explanation";
 import FillInBlanks from "../../features/units/FillInBlanks";
 import WriteInBlanks from "../../features/units/WriteInBlanks";
@@ -19,6 +20,15 @@ export default function UnitDispatcher({
 }: UnitDispatcherProps) {
   // Dispatch based on unit type
   switch (unit.type) {
+    case "flashcard":
+      return (
+        <Flashcard
+          data={unit.output}
+          plan={unit.plan}
+          onComplete={() => onComplete()}
+        />
+      );
+
     case "explanation":
       return (
         <Explanation

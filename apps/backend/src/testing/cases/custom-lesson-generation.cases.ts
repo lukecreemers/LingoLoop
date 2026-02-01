@@ -20,12 +20,18 @@ export interface CLGInputs extends Record<string, string | number | string[]> {
 const UNIT_EXPLANATIONS = `
 ### AVAILABLE UNIT TYPES AND SUB-AGENT REQUIREMENTS
 
-**1. explanation (EX Agent)**
+**1. flashcard (FC Agent)**
+Generates vocabulary flashcards for introducing and memorizing new words or phrases.
+- instructions: The vocabulary theme or specific words/phrases to teach (e.g., "Basic greetings", "Food vocabulary", "Numbers 1-20").
+- cardCount: Number of cards (typically 5-10 for beginners, up to 15 for advanced).
+*Critical Goal: VOCABULARY INTRODUCTION. Use this early in lessons to introduce new words BEFORE exercises that use them. Cards include term, definition, and optional example sentences. This is purely for learning/memorization, not testing.*
+
+**2. explanation (EX Agent)**
 Generates a clear, pedagogical explanation in English about a specific linguistic concept.
 - instructions: The topic or concept to explain (e.g., "The difference between Por and Para", "When to use the subjunctive in relative clauses").
 *Critical Goal: Level-appropriate clarity. Beginners get simple language with 2-3 examples; Advanced gets nuance, regional variations, and linguistic comparisons. Use this BEFORE drilling exercises to set context.*
 
-**2. fill in the blanks (FIB Agent)**
+**3. fill in the blanks (FIB Agent)**
 A deterministic grammar/vocabulary test with multiple-choice options.
 - instructions: A STRICT grammar focus (e.g., "Preterite of irregular verbs" or "Direct object pronouns").
 - blankAmount: Number of [ * ] blanks per sentence. 
@@ -33,7 +39,7 @@ A deterministic grammar/vocabulary test with multiple-choice options.
 - distractorCount: Typically 2-4 distractors per blank.
 *Critical Goal: Zero Ambiguity. Sentences must be written so that only the correct answer is logically possible.*
 
-**3. word meaning match (WMM Agent)**
+**4. word meaning match (WMM Agent)**
 A matching exercise for vocabulary or grammatical associations.
 - matchType: The relationship (e.g., "Infinitive → English", "Noun → Correct Article", "Opposites").
 - theme: Thematic grouping (e.g., "Kitchen vocabulary", "Emotions").
@@ -41,13 +47,13 @@ A matching exercise for vocabulary or grammatical associations.
 - distractorCount: "Near-miss" items that fit the theme but have no match (2-4).
 *Critical Goal: Column items must be balanced in complexity to prevent guessing by length.*
 
-**4. write in the blanks (WIB Agent)**
+**5. write in the blanks (WIB Agent)**
 High-stakes production where the user types the answer based on a clue.
 - instructions: The specific word/grammar target (e.g., "Reflexive verbs in present tense").
 - blankAmount: Number of [ * ] blanks.
 *Critical Goal: Clue Integration. Every blank must have a root word/clue (e.g., an infinitive) provided in the instructions so the user knows what to transform.*
 
-**5. translation (TG Agent)**
+**6. translation (TG Agent)**
 Generates a unified paragraph (not disconnected sentences) for the user to translate.
 - instructions: A coherent theme or topic for the paragraph.
 - sentenceCount: Typically 1-2 sentences but longer if requested.
@@ -55,7 +61,7 @@ Generates a unified paragraph (not disconnected sentences) for the user to trans
 - languageToTranslateTo: The language the user must type in.
 *Critical Goal: The paragraph must read like native speech and maintain a unified thematic thread.*
 
-**6. conversation (CG Agent)**
+**7. conversation (CG Agent)**
 Generates a script between two distinct characters. 
 - instructions: A specific situation or conflict (e.g., "Arguing over a late train").
 - conversationLength: "short" (4-6 turns), "medium" (8-12 turns), or "long" (14-20 turns).
@@ -78,8 +84,9 @@ You are a Senior Pedagogical Director specializing in Micro-Learning. Your task 
 If the concept is complex relative to the users level, do NOT explain everything at once. Instead, break the {{instructions}} into 2-3 granular sub-concepts. For each sub-concept, generate a "Loop":
 
 1.  **ATOMIC EXPLANATION:** An 'explanation' unit limited to ONE specific rule or use case. (e.g., "Ser for Professions" only).
-2.  **TARGETED DRILL:** atleast 2 low-stakes units (FIB or WMM) that test ONLY the rule just explained.
-3.  **PRODUCTION:** Either a WIB or TG unit that forces the user to use the rule in context.
+2.  **VOCABULARY PRIMING (Optional):** If new vocabulary is being taught, start with a 'flashcard' unit to introduce the key words. This is especially important for beginners or when introducing a new topic with unfamiliar terms.
+3.  **TARGETED DRILL:** atleast 2 low-stakes units (FIB or WMM) that test ONLY the rule just explained.
+4.  **PRODUCTION:** Either a WIB or TG unit that forces the user to use the rule in context.
 
 At the end of all loops do an **INTEGRATION (The Bridge):** After 2-3 loops, provide atleast 2 "Production" units (WIB, TG, or CG) that forces the user to use all sub-concepts together in context.
 
