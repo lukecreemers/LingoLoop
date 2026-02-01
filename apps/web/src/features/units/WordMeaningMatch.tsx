@@ -1,6 +1,8 @@
 import { useState, useMemo } from "react";
-import type { WMMOutput } from "@shared";
+import type { WMMOutput, WordMatchUnit } from "@shared";
 import ProgressBar from "../../components/ui/ProgressBar";
+import { ExplainWrongButton } from "../../components/ui/ExplainWrong";
+import { RedoButton } from "../../components/ui/RedoButton";
 
 type MatchStatus = "unmatched" | "matched" | "correct" | "incorrect";
 
@@ -11,11 +13,13 @@ interface Match {
 
 interface WordMeaningMatchProps {
   data: WMMOutput;
+  plan: WordMatchUnit;
   onComplete: () => void;
 }
 
 export default function WordMeaningMatch({
   data,
+  plan,
   onComplete,
 }: WordMeaningMatchProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -320,7 +324,7 @@ export default function WordMeaningMatch({
           </div>
 
           {/* Feedback Area */}
-          <div className="min-h-16 shrink-0 flex items-center justify-center border-t-2 border-zinc-100 mt-4 py-3">
+          <div className="min-h-16 shrink-0 flex flex-col items-center justify-center border-t-2 border-zinc-100 mt-4 py-3">
             {isChecked ? (
               <div className="animate-in fade-in slide-in-from-bottom-2 text-center w-full px-4">
                 {allCorrect ? (
@@ -328,7 +332,7 @@ export default function WordMeaningMatch({
                     PERFECT MATCHES!
                   </p>
                 ) : (
-                  <div className="space-y-2">
+                  <div className="space-y-3">
                     <p className="text-bauhaus-red font-bold">
                       {
                         [...matchStatuses.values()].filter(
@@ -353,6 +357,37 @@ export default function WordMeaningMatch({
                         })
                         .join(" • ")}
                     </div>
+                    <ExplainWrongButton
+                      input={{
+                        unitType: "word meaning match",
+                        context: `Match ${currentExercise.columnLabels.a} to ${currentExercise.columnLabels.b}`,
+                        userAnswer: matches
+                          .filter(
+                            (match) =>
+                              matchStatuses.get(match.aIndex) === "incorrect"
+                          )
+                          .map((match) => {
+                            const aText = columnA[match.aIndex].text;
+                            const bText = columnB[match.bIndex].text;
+                            return `${aText} → ${bText}`;
+                          })
+                          .join(", "),
+                        correctAnswer: matches
+                          .filter(
+                            (match) =>
+                              matchStatuses.get(match.aIndex) === "incorrect"
+                          )
+                          .map((match) => {
+                            const aText = columnA[match.aIndex].text;
+                            const correctBItem = columnB.find(
+                              (b) => b.correctPairIndex === match.aIndex
+                            );
+                            return `${aText} → ${correctBItem?.text || "?"}`;
+                          })
+                          .join(", "),
+                        targetLanguage: "Spanish",
+                      }}
+                    />
                   </div>
                 )}
               </div>
@@ -369,7 +404,16 @@ export default function WordMeaningMatch({
 
       {/* Footer Actions */}
       <footer className="shrink-0 bg-white border-t-4 border-black p-6 z-10">
-        <div className="max-w-5xl mx-auto flex justify-end">
+        <div className="max-w-5xl mx-auto flex justify-end gap-4">
+          {isChecked && isLastExercise && (
+            <RedoButton
+              unitPlan={plan}
+              onRedo={() => {
+                setCurrentIndex(0);
+                setScore({ correct: 0, total: 0 });
+              }}
+            />
+          )}
           <button
             onClick={isChecked ? handleNext : handleCheck}
             disabled={!isChecked && !allMatched}

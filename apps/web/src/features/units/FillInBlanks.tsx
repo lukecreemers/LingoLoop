@@ -1,19 +1,26 @@
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import { DndProvider } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
-import type { FIBOutput } from "@shared";
+import type { FIBOutput, FillInBlanksUnit } from "@shared";
 import WordChip from "../../components/ui/WordChip";
 import SentenceWithBlanks from "../../components/ui/SentenceWithBlanks";
 import ProgressBar from "../../components/ui/ProgressBar";
+import { ExplainWrongButton } from "../../components/ui/ExplainWrong";
+import { RedoButton } from "../../components/ui/RedoButton";
 
 type SlotStatus = "empty" | "filled" | "correct" | "incorrect";
 
 interface FillInBlanksProps {
   data: FIBOutput;
+  plan: FillInBlanksUnit;
   onComplete: () => void;
 }
 
-export default function FillInBlanks({ data, onComplete }: FillInBlanksProps) {
+export default function FillInBlanks({
+  data,
+  plan,
+  onComplete,
+}: FillInBlanksProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [filledAnswers, setFilledAnswers] = useState<(string | null)[]>([]);
   const [isChecked, setIsChecked] = useState(false);
@@ -24,18 +31,23 @@ export default function FillInBlanks({ data, onComplete }: FillInBlanksProps) {
   const currentExercise = data.exercises[currentIndex];
   const blankCount = (currentExercise.template.match(/\[\*\]/g) || []).length;
 
-  useMemo(() => {
+  // Reset state when moving to a new exercise
+  useEffect(() => {
     setFilledAnswers(new Array(blankCount).fill(null));
     setSlotStatuses(new Array(blankCount).fill("empty"));
     setIsChecked(false);
   }, [currentIndex, blankCount]);
 
+  // Deduplicate and shuffle word options for current exercise
   const wordOptions = useMemo(() => {
     const allWords = [
       ...currentExercise.answers,
       ...currentExercise.distractors,
     ];
-    return allWords.sort(() => Math.random() - 0.5);
+    // Remove duplicates
+    const uniqueWords = [...new Set(allWords)];
+    // Shuffle
+    return uniqueWords.sort(() => Math.random() - 0.5);
   }, [currentExercise]);
 
   const usedWords = useMemo(() => {
@@ -148,7 +160,7 @@ export default function FillInBlanks({ data, onComplete }: FillInBlanksProps) {
             </div>
 
             {/* Feedback Area - Absolute Overlay at Bottom of Card or Reserved Space */}
-            <div className="h-24 shrink-0 flex items-center justify-center border-t-2 border-zinc-100 mt-4">
+            <div className="min-h-24 shrink-0 flex flex-col items-center justify-center border-t-2 border-zinc-100 mt-4 py-4">
               {isChecked ? (
                 <div className="animate-in fade-in slide-in-from-bottom-2 text-center w-full">
                   {allCorrect ? (
@@ -160,9 +172,18 @@ export default function FillInBlanks({ data, onComplete }: FillInBlanksProps) {
                       <p className="text-bauhaus-red font-bold text-xs tracking-widest uppercase mb-1">
                         Correct Answer
                       </p>
-                      <p className="text-xl font-bold text-black truncate px-4">
+                      <p className="text-xl font-bold text-black truncate px-4 mb-3">
                         {currentExercise.answers.join(", ")}
                       </p>
+                      <ExplainWrongButton
+                        input={{
+                          unitType: "fill in the blanks",
+                          context: currentExercise.template,
+                          userAnswer: filledAnswers.filter(Boolean).join(", "),
+                          correctAnswer: currentExercise.answers.join(", "),
+                          targetLanguage: "Spanish", // TODO: Get from lesson context
+                        }}
+                      />
                     </>
                   )}
                 </div>
@@ -188,7 +209,16 @@ export default function FillInBlanks({ data, onComplete }: FillInBlanksProps) {
 
         {/* Footer Actions - Fixed Height */}
         <footer className="shrink-0 bg-white border-t-4 border-black p-6 z-10">
-          <div className="max-w-5xl mx-auto flex justify-end">
+          <div className="max-w-5xl mx-auto flex justify-end gap-4">
+            {isChecked && isLastExercise && (
+              <RedoButton
+                unitPlan={plan}
+                onRedo={() => {
+                  setCurrentIndex(0);
+                  setScore({ correct: 0, total: 0 });
+                }}
+              />
+            )}
             <button
               onClick={isChecked ? handleNext : handleCheck}
               disabled={!isChecked && !allSlotsFilled}

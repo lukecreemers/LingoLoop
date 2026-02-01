@@ -1,5 +1,7 @@
 import { useMemo } from "react";
 import DropSlot from "./DropSlot";
+import SelectableText from "./SelectableText";
+import { DEMO_KNOWN_VOCAB } from "../../constants/vocab";
 
 type SlotStatus = "empty" | "filled" | "correct" | "incorrect";
 
@@ -46,9 +48,15 @@ export default function SentenceWithBlanks({
       {segments.map((segment, index) => {
         if (segment.type === "text") {
           return (
-            <span key={index} className="whitespace-pre-wrap">
-              {segment.content}
-            </span>
+            <SelectableText
+              key={index}
+              text={segment.content}
+              knownVocab={DEMO_KNOWN_VOCAB}
+              sourceLanguage="Spanish"
+              targetLanguage="English"
+              textSize="text-3xl"
+              className="whitespace-pre-wrap"
+            />
           );
         }
         

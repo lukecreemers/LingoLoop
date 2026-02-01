@@ -1,17 +1,21 @@
-import { useState, useMemo, useCallback } from "react";
-import type { WIBOutput } from "@shared";
+import { useState, useCallback, useEffect } from "react";
+import type { WIBOutput, WriteInBlanksUnit } from "@shared";
 import SentenceWithInputs from "../../components/ui/SentenceWithInputs";
 import ProgressBar from "../../components/ui/ProgressBar";
+import { ExplainWrongButton } from "../../components/ui/ExplainWrong";
+import { RedoButton } from "../../components/ui/RedoButton";
 
 type SlotStatus = "empty" | "filled" | "correct" | "incorrect";
 
 interface WriteInBlanksProps {
   data: WIBOutput;
+  plan: WriteInBlanksUnit;
   onComplete: () => void;
 }
 
 export default function WriteInBlanks({
   data,
+  plan,
   onComplete,
 }: WriteInBlanksProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -25,7 +29,7 @@ export default function WriteInBlanks({
   const blankCount = currentExercise.blanks.length;
 
   // Reset state when exercise changes
-  useMemo(() => {
+  useEffect(() => {
     setFilledAnswers(new Array(blankCount).fill(""));
     setSlotStatuses(new Array(blankCount).fill("empty"));
     setIsChecked(false);
@@ -137,7 +141,7 @@ export default function WriteInBlanks({
           </div>
 
           {/* Feedback Area - Reserved Space */}
-          <div className="h-24 shrink-0 flex items-center justify-center border-t-2 border-zinc-100 mt-4">
+          <div className="min-h-24 shrink-0 flex flex-col items-center justify-center border-t-2 border-zinc-100 mt-4 py-3">
             {isChecked ? (
               <div className="animate-in fade-in slide-in-from-bottom-2 text-center w-full">
                 {allCorrect ? (
@@ -149,9 +153,23 @@ export default function WriteInBlanks({
                     <p className="text-bauhaus-red font-bold text-xs tracking-widest uppercase mb-1">
                       Correct Answer
                     </p>
-                    <p className="text-xl font-bold text-black truncate px-4">
+                    <p className="text-xl font-bold text-black truncate px-4 mb-3">
                       {correctAnswers.join(", ")}
                     </p>
+                    <ExplainWrongButton
+                      input={{
+                        unitType: "write in the blanks",
+                        context: currentExercise.template,
+                        userAnswer: filledAnswers
+                          .filter((_, i) => slotStatuses[i] === "incorrect")
+                          .join(", "),
+                        correctAnswer: currentExercise.blanks
+                          .filter((_, i) => slotStatuses[i] === "incorrect")
+                          .map((b) => b.correctAnswer)
+                          .join(", "),
+                        targetLanguage: "Spanish",
+                      }}
+                    />
                   </>
                 )}
               </div>
@@ -166,7 +184,16 @@ export default function WriteInBlanks({
 
       {/* Footer Actions - Fixed Height */}
       <footer className="shrink-0 bg-white border-t-4 border-black p-6 z-10">
-        <div className="max-w-5xl mx-auto flex justify-end">
+        <div className="max-w-5xl mx-auto flex justify-end gap-4">
+          {isChecked && isLastExercise && (
+            <RedoButton
+              unitPlan={plan}
+              onRedo={() => {
+                setCurrentIndex(0);
+                setScore({ correct: 0, total: 0 });
+              }}
+            />
+          )}
           <button
             onClick={isChecked ? handleNext : handleCheck}
             disabled={!isChecked && !allSlotsFilled}

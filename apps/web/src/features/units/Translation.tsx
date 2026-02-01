@@ -1,9 +1,10 @@
 import { useState, useMemo } from "react";
-import type { TGOutput, TMOutput } from "@shared";
+import type { TGOutput, TMOutput, TranslationUnit } from "@shared";
 import ProgressBar from "../../components/ui/ProgressBar";
 
 interface TranslationProps {
   data: TGOutput;
+  plan: TranslationUnit;
   onComplete: () => void;
 }
 
@@ -106,7 +107,7 @@ function getScoreLabel(score: number): string {
   return "Keep Practicing";
 }
 
-export default function Translation({ data, onComplete }: TranslationProps) {
+export default function Translation({ data, plan: _plan, onComplete }: TranslationProps) {
   const [userTranslation, setUserTranslation] = useState("");
   const [markingResult, setMarkingResult] = useState<TMOutput | null>(null);
   const [showIdealAnswer, setShowIdealAnswer] = useState(false);

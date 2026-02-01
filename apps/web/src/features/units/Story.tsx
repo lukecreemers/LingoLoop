@@ -1,5 +1,7 @@
 import { useMemo } from "react";
 import type { SGOutput } from "@shared";
+import SelectableText from "../../components/ui/SelectableText";
+import { DEMO_KNOWN_VOCAB } from "../../constants/vocab";
 
 interface StoryProps {
   data: SGOutput;
@@ -49,17 +51,23 @@ export default function Story({ data, onComplete }: StoryProps) {
               "
             </div>
 
-            <article className="space-y-6 text-lg leading-relaxed">
+            <article className="space-y-6">
               {paragraphs.map((paragraph, index) => (
-                <p
+                <div
                   key={index}
                   className="first-letter:text-3xl first-letter:font-bold first-letter:mr-1 first-letter:float-left first-letter:leading-none"
                   style={{
                     animationDelay: `${index * 100}ms`,
                   }}
                 >
-                  {paragraph}
-                </p>
+                  <SelectableText
+                    text={paragraph}
+                    knownVocab={DEMO_KNOWN_VOCAB}
+                    sourceLanguage="Spanish"
+                    targetLanguage="English"
+                    textSize="text-lg"
+                  />
+                </div>
               ))}
             </article>
 

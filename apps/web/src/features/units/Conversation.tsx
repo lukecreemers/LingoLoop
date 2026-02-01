@@ -1,5 +1,8 @@
 import { useState, useMemo } from "react";
-import type { CGOutput } from "@shared";
+import type { CGOutput, ConversationUnit } from "@shared";
+import SelectableText from "../../components/ui/SelectableText";
+import { DEMO_KNOWN_VOCAB } from "../../constants/vocab";
+import { RedoButton } from "../../components/ui/RedoButton";
 
 interface Message {
   speaker: string;
@@ -8,6 +11,7 @@ interface Message {
 
 interface ConversationProps {
   data: CGOutput;
+  plan: ConversationUnit;
   onComplete: () => void;
 }
 
@@ -39,7 +43,11 @@ const SPEAKER_COLORS = [
   },
 ];
 
-export default function Conversation({ data, onComplete }: ConversationProps) {
+export default function Conversation({
+  data,
+  plan,
+  onComplete,
+}: ConversationProps) {
   const [visibleCount, setVisibleCount] = useState(1);
 
   // Parse conversation string into messages
@@ -148,9 +156,14 @@ export default function Conversation({ data, onComplete }: ConversationProps) {
                         ${isLeft ? "border-l-4" : "border-r-4"}
                       `}
                     >
-                      <p className="text-base leading-relaxed text-start">
-                        {msg.text}
-                      </p>
+                      <SelectableText
+                        text={msg.text}
+                        knownVocab={DEMO_KNOWN_VOCAB}
+                        sourceLanguage="Spanish"
+                        targetLanguage="English"
+                        textSize="text-base"
+                        className="text-start"
+                      />
                     </div>
                   </div>
                 </div>
@@ -190,7 +203,7 @@ export default function Conversation({ data, onComplete }: ConversationProps) {
 
       {/* Footer Actions */}
       <footer className="shrink-0 bg-white border-t-4 border-black p-6 z-10">
-        <div className="max-w-3xl mx-auto flex justify-end">
+        <div className="max-w-3xl mx-auto flex justify-end gap-4">
           {!allRevealed ? (
             <button
               onClick={handleRevealNext}
@@ -201,14 +214,20 @@ export default function Conversation({ data, onComplete }: ConversationProps) {
               Next Message →
             </button>
           ) : (
-            <button
-              onClick={handleContinue}
-              className="px-10 py-4 text-lg font-bold uppercase tracking-widest border-2 border-black
-                bg-bauhaus-green text-white hover:bg-emerald-700 bauhaus-shadow
-                transition-all duration-100 active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
-            >
-              Continue →
-            </button>
+            <>
+              <RedoButton
+                unitPlan={plan}
+                onRedo={() => setVisibleCount(1)}
+              />
+              <button
+                onClick={handleContinue}
+                className="px-10 py-4 text-lg font-bold uppercase tracking-widest border-2 border-black
+                  bg-bauhaus-green text-white hover:bg-emerald-700 bauhaus-shadow
+                  transition-all duration-100 active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
+              >
+                Continue →
+              </button>
+            </>
           )}
         </div>
       </footer>

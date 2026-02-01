@@ -1,192 +1,233 @@
+import { useState } from "react";
 import "./App.css";
-import FillInBlanks from "./features/units/FillInBlanks";
-import type {
-  CGOutput,
-  FIBOutput,
-  SGOutput,
-  TGOutput,
-  WIBOutput,
-  WMMOutput,
-} from "@shared";
-import WriteInBlanks from "./features/units/WriteInBlanks";
-import WordMeaningMatch from "./features/units/WordMeaningMatch";
-import Conversation from "./features/units/Conversation";
-import Story from "./features/units/Story";
-import Translation from "./features/units/Translation";
+import type { CompiledLesson } from "@shared";
+import { LessonPlayer, LessonCreator } from "./components/lesson";
+import { useLessonStore } from "./stores/useLessonStore";
 
-const dummyFIBData: FIBOutput = {
-  exercises: [
+// Demo lesson data for testing the lesson player
+const demoLessonData: CompiledLesson = {
+  units: [
     {
-      template: "Hola, me [*] María y soy de México.",
-      answers: ["llamo"],
-      distractors: ["llamamos", "llamar", "soy"],
-    },
-    {
-      template: "Yo [*] ingeniero y estoy muy feliz en mi trabajo.",
-      answers: ["soy"],
-      distractors: ["somos", "ser", "estoy"],
-    },
-    {
-      template: "¿Cómo [*] tú? ¿Dónde estás ahora?",
-      answers: ["estás"],
-      distractors: ["está", "estar", "eres"],
-    },
-    {
-      template: "Hola, me [*] María y [*] de España.",
-      answers: ["llamo", "soy"],
-      distractors: ["llamas", "eres", "llamar", "estoy", "estás", "sería"],
-    },
-    {
-      template: "[*] Juan, ¿cómo [*]?",
-      answers: ["Soy", "estás"],
-      distractors: ["Eres", "Sois", "Somos", "estoy", "estamos", "están"],
-    },
-    {
-      template: "¿Dónde [*]? Yo [*] en casa.",
-      answers: ["estás", "estoy"],
-      distractors: ["eres", "soy", "estamos", "están", "estaré", "estaba"],
-    },
-    {
-      template: "Hola, me [*] Juan y [*] de México.",
-      answers: ["llamo", "soy"],
-      distractors: ["llamas", "eres", "llamaba", "estoy", "sou", "ser"],
-    },
-    {
-      template: "[*] muy feliz de conocerte. ¿Cómo [*]?",
-      answers: ["Estoy", "estás"],
-      distractors: ["Soy", "Estamos", "Somos", "soy", "está", "son"],
-    },
-    {
-      template: "Mi amigo [*] ingeniero y [*] en Madrid.",
-      answers: ["es", "está"],
-      distractors: ["está", "soy", "estamos", "son", "sois", "estoy"],
-    },
-    {
-      template: "Hola, me [*] Juan y [*] de España.",
-      answers: ["llamo", "soy"],
-      distractors: ["llamas", "estoy", "nombre", "llamar", "estás", "seres"],
-    },
-  ],
-};
-
-const dummyWIBData: WIBOutput = {
-  exercises: [
-    {
-      template: "Yo [*] con mis amigos en la escuela todos los días.",
-      blanks: [
-        {
-          correctAnswer: "hablo",
-          clue: "(hablar)",
-          acceptedAlternates: [],
-        },
-      ],
-    },
-    {
-      template: "Tú [*] mucho en la biblioteca después de la escuela.",
-      blanks: [
-        {
-          correctAnswer: "estudias",
-          clue: "(estudiar)",
-          acceptedAlternates: [],
-        },
-      ],
-    },
-    {
-      template: "Nosotros [*] en la mesa de la casa mañana.",
-      blanks: [
-        {
-          correctAnswer: "cocinamos",
-          clue: "(cocinar)",
-          acceptedAlternates: [],
-        },
-      ],
-    },
-  ],
-};
-
-const dummyWMMData: WMMOutput = {
-  exercises: [
-    {
-      columnLabels: {
-        a: "Spanish Greeting/Introduction",
-        b: "English Translation",
+      type: "conversation",
+      plan: {
+        type: "conversation",
+        instructions:
+          "Create a conversation about two people meeting and introducing themselves, discussing where they're from and what they do for work.",
+        conversationLength: "medium",
       },
-      pairs: [
-        ["¿Hola, cómo estás?", "Hi, how are you?"],
-        ["Me llamo...", "My name is..."],
-        ["Mucho gusto", "Nice to meet you"],
-        ["Buenos días", "Good morning"],
-        ["Buenas noches", "Good evening/night"],
-        ["¿Cómo te llamas?", "What is your name?"],
-        ["Encantado/Encantada", "Delighted/pleased to meet you"],
-      ],
-      distractors: [
-        "Good day (general greeting)",
-        "How are you doing?",
-        "What is your family?",
-      ],
-      instruction:
-        "Match each Spanish greeting or introduction phrase with its correct English translation.",
+      output: {
+        characters: [
+          { name: "María", age: "adult", gender: "female" },
+          { name: "Juan", age: "adult", gender: "male" },
+        ],
+        conversation: `**María:** ¡Hola! Me llamo María. ¿Cómo te llamas?
+**Juan:** Hola, María. Me llamo Juan. Mucho gusto.
+**María:** Mucho gusto, Juan. Soy de México. ¿De dónde eres tú?
+**Juan:** Soy de España, de Barcelona. ¿Vives aquí en la ciudad?
+**María:** Sí, vivo aquí desde hace tres años. Trabajo en una empresa de tecnología.
+**Juan:** ¡Qué interesante! Yo soy profesor de español en la universidad.
+**María:** ¡Qué bien! Entonces hablas muy bien el español, obviamente.
+**Juan:** Jaja, sí, es mi lengua materna. ¿Te gusta vivir aquí?
+**María:** Me encanta. La gente es muy amable y hay mucha cultura.`,
+      },
+    },
+    {
+      type: "explanation",
+      plan: {
+        type: "explanation",
+        instructions:
+          "Explain how to introduce yourself in Spanish, including key phrases like 'Me llamo', 'Soy de', and 'Mucho gusto'. Cover the reflexive verb 'llamarse'.",
+      },
+      output: {
+        explanation: `## Introducing Yourself in Spanish
+
+When meeting someone new in Spanish, you'll need to know how to say your name and ask about theirs.
+
+### Key Phrases
+
+- **Me llamo...** — "My name is..." (literally: "I call myself...")
+- **Soy de...** — "I'm from..."
+- **Mucho gusto** — "Nice to meet you"
+
+### The Verb "Llamarse"
+
+This is a **reflexive verb**, which means it includes a pronoun that refers back to the subject:
+
+\`\`\`
+Yo me llamo María
+Tú te llamas Juan  
+Él/Ella se llama Pedro
+\`\`\`
+
+### Example Conversation
+
+> **A:** ¡Hola! Me llamo María. ¿Cómo te llamas?
+> **B:** Hola, María. Me llamo Juan. Mucho gusto.
+> **A:** Mucho gusto, Juan. Soy de México. ¿Y tú?
+
+Now let's practice these phrases!`,
+      },
+    },
+    {
+      type: "fill in the blanks",
+      plan: {
+        type: "fill in the blanks",
+        instructions:
+          "Practice using 'me llamo' and 'soy' for self-introduction.",
+        blankAmount: 1,
+        distractorInstructions: "Include similar verb forms as distractors.",
+        distractorCount: 3,
+      },
+      output: {
+        exercises: [
+          {
+            template: "Hola, me [*] María y soy de México.",
+            answers: ["llamo"],
+            distractors: ["llamamos", "llamar", "soy"],
+          },
+          {
+            template: "Yo [*] ingeniero y estoy muy feliz.",
+            answers: ["soy"],
+            distractors: ["somos", "ser", "estoy"],
+          },
+        ],
+      },
+    },
+    {
+      type: "word meaning match",
+      plan: {
+        type: "word meaning match",
+        matchType: "Spanish Word → English Translation",
+        theme: "Basic greetings and common phrases",
+        pairCount: 3,
+        distractorCount: 2,
+      },
+      output: {
+        exercises: [
+          {
+            columnLabels: {
+              a: "Spanish",
+              b: "English",
+            },
+            pairs: [
+              ["Hola", "Hello"],
+              ["Gracias", "Thank you"],
+              ["Buenos días", "Good morning"],
+            ],
+            distractors: ["Goodbye", "Good night"],
+            instruction:
+              "Match the Spanish words with their English translations.",
+          },
+        ],
+      },
+    },
+    {
+      type: "write in the blanks",
+      plan: {
+        type: "write in the blanks",
+        instructions:
+          "Practice conjugating verbs in context with daily activities.",
+        blankAmount: 1,
+      },
+      output: {
+        exercises: [
+          {
+            template: "Yo [*] con mis amigos todos los días.",
+            blanks: [
+              {
+                correctAnswer: "hablo",
+                clue: "(hablar)",
+                acceptedAlternates: [],
+              },
+            ],
+          },
+        ],
+      },
     },
   ],
 };
 
-const dummyCGData: CGOutput = {
-  characters: [
-    {
-      name: "Carlos",
-      age: "adult",
-      gender: "male",
-    },
-    {
-      name: "Elena",
-      age: "adult",
-      gender: "female",
-    },
-  ],
-  conversation:
-    "**Carlos**: Hola, ¿qué tal? Soy Carlos. ¿Y tú? ¿Cómo te llamas?\n\n**Elena**: Mucho gusto, Carlos. Me llamo Elena. Encantada de conocerte.\n\n**Carlos**: Encantado. Oye, ¿de dónde eres? No te conozco de por aquí.\n\n**Elena**: Soy de Guadalajara, pero ahora vivo aquí en la ciudad. Me mudé hace tres meses. ¿Y tú? ¿De dónde eres?\n\n**Carlos**: Ah, qué interesante. Yo soy de aquí, del área. Nací y crecí en esta ciudad. ¿Y qué haces? ¿A qué te dedicas?\n\n**Elena**: Trabajo en una oficina. Soy diseñadora gráfica. Es un trabajo interesante, aunque a veces es muy ocupado. ¿Y tú, Carlos? ¿Cuál es tu profesión?\n\n**Carlos**: Yo trabajo como profesor de inglés en una escuela privada. Me gusta mucho enseñar, especialmente cuando los estudiantes son curiosos y quieren aprender.\n\n**Elena**: Qué bonito. Los profesores son muy importantes. Yo siempre digo que la educación es fundamental. ¿Te gusta vivir en esta ciudad?\n\n**Carlos**: Sí, claro. La ciudad es grande pero también es hermosa. Hay mucho que hacer. Aunque extraño los días tranquilos en el rincón donde crecí. ¿Y tú? ¿Cómo te adaptas a la vida aquí?\n\n**Elena**: Muy bien, gracias por preguntar. He conocido personas muy amables. Mi familia vive todavía en Guadalajara, pero ellos vienen a visitarme a mi casa de vez en cuando. La extraño, pero también estoy feliz de esta nueva experiencia.\n\n**Carlos**: Eso es maravilloso. Los amigos nuevos y las nuevas experiencias siempre son valiosas. Oye, ¿vienes a estos eventos frecuentemente?\n\n**Elena**: No, la verdad es que es la primera vez. Un amigo me invitó. ¿Y tú? ¿Vienes siempre?\n\n**Carlos**: Sí, vengo bastante. Son muy divertidos y puedo conocer a personas interesantes como tú. Bueno, me alegra mucho haber conocido a Elena. ¿Te gustaría tomar algo? Vamos a la mesa a buscar un refresco.",
-};
-
-const dummySGData: SGOutput = {
-  story:
-    'En un pequeño café en el centro de la ciudad, María está sentada en una silla cerca de la ventana. De repente, ve a su amigo Juan que entra por la puerta. "¡Hola, Juan! ¿Qué tal? ¿Cómo estás?", pregunta María con una sonrisa feliz. Juan responde: "¡Hola, María! Estoy muy bien, gracias. ¿Y tú? ¿Qué tal tu día?" María le contesta: "Excelente. Acabo de terminar el trabajo. Cuéntame, ¿qué haces en tu empresa? ¿Es interesante?" Juan explica: "Sí, trabajo como ingeniero. Desarrollamos proyectos grandes y pequeños. Es un trabajo muy bueno y siempre aprovecho para aprender cosas nuevas." María sonríe y dice: "¡Qué maravilloso! Me alegra mucho que estés feliz. Vamos a tomar un café juntos como siempre." Ambos amigos se sientan alrededor de la mesa, beben café caliente y disfrutan de esta mañana extraordinaria en su rincón favorito del café.',
-};
-
-const dummyTGData: TGOutput = {
-  paragraph:
-    "Hello, my name is Maria, and I am happy to meet you today. I am from a small town near Madrid, Spain, where I grew up with my family in a big house. Currently, I work as a teacher at a local school, and I really enjoy helping students develop their skills every day. I spend my mornings in the classroom and my evenings reading books or spending time with friends. I hope we can stay in touch and build a great friendship together!",
-  translation:
-    "Hola, mi nombre es María, y estoy feliz de conocerte hoy. Soy de un pueblo pequeño cerca de Madrid, España, donde crecí con mi familia en una casa grande. Actualmente, trabajo como maestra en una escuela local, y realmente disfruto ayudando a los estudiantes a desarrollar sus habilidades todos los días. Paso mis mañanas en el aula y mis noches leyendo libros o pasando tiempo con amigos. ¡Espero que podamos mantenernos en contacto y construir una gran amistad juntos!",
-};
+type AppView = "home" | "creator" | "player";
 
 function App() {
+  const [view, setView] = useState<AppView>("home");
+  const setLesson = useLessonStore((s) => s.setLesson);
+  const reset = useLessonStore((s) => s.reset);
+
+  const handleStartDemo = () => {
+    setLesson(demoLessonData);
+    setView("player");
+  };
+
+  const handleCreateLesson = () => {
+    setView("creator");
+  };
+
+  const handleLessonCreated = () => {
+    setView("player");
+  };
+
+  const handleClose = () => {
+    reset();
+    setView("home");
+  };
+
+  // Render based on current view
+  if (view === "creator") {
+    return <LessonCreator onLessonCreated={handleLessonCreated} />;
+  }
+
+  if (view === "player") {
+    return (
+      <div className="h-screen">
+        <LessonPlayer
+          onClose={handleClose}
+          onLessonComplete={handleClose}
+        />
+      </div>
+    );
+  }
+
+  // Home view
   return (
-    <div>
-      {/* <FillInBlanks
-        data={dummyFIBData}
-        onComplete={() => {}}
-      /> */}
-      {/* <WriteInBlanks
-        data={dummyWIBData}
-        onComplete={() => {}}
-      /> */}
-      {/* <WordMeaningMatch
-        data={dummyWMMData}
-        onComplete={() => {}}
-      /> */}
-      {/* <Conversation
-        data={dummyCGData}
-        onComplete={() => {}}
-      /> */}
-      {/* <Story
-        data={dummySGData}
-        onComplete={() => {}}
-      /> */}
-      <Translation
-        data={dummyTGData}
-        onComplete={() => {}}
-      />
+    <div className="min-h-screen bg-bauhaus-white flex items-center justify-center p-8">
+      <div className="text-center max-w-lg">
+        {/* Logo */}
+        <h1 className="text-6xl font-black tracking-tighter mb-2">
+          Lingo<span className="text-bauhaus-blue">Loop</span>
+        </h1>
+        <p className="text-zinc-500 mb-12">
+          AI-powered language learning, tailored to you
+        </p>
+
+        {/* Actions */}
+        <div className="space-y-4">
+          <button
+            onClick={handleCreateLesson}
+            className="w-full px-10 py-5 text-lg font-bold uppercase tracking-widest border-2 border-black
+              bg-bauhaus-blue text-white hover:bg-blue-700 bauhaus-shadow
+              transition-all duration-100 active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
+          >
+            Create New Lesson
+          </button>
+
+          <button
+            onClick={handleStartDemo}
+            className="w-full px-10 py-5 text-lg font-bold uppercase tracking-widest border-2 border-black
+              bg-white text-black hover:bg-zinc-100 bauhaus-shadow
+              transition-all duration-100 active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
+          >
+            Try Demo Lesson
+          </button>
+        </div>
+
+        {/* Decorative elements */}
+        <div className="mt-16 flex justify-center gap-4">
+          <div className="w-4 h-4 bg-bauhaus-red" />
+          <div className="w-4 h-4 bg-bauhaus-blue" />
+          <div className="w-4 h-4 bg-bauhaus-green" />
+        </div>
+      </div>
     </div>
   );
 }
