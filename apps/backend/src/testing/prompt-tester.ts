@@ -42,6 +42,8 @@ export interface TestResult<TOutput> {
   error?: string;
   durationMs: number;
   prompt: string;
+  inputTokens?: number;
+  outputTokens?: number;
 }
 
 export interface TestSuiteResult<TOutput> {
@@ -53,6 +55,8 @@ export interface TestSuiteResult<TOutput> {
     passed: number;
     failed: number;
     totalTimeMs: number;
+    totalInputTokens: number;
+    totalOutputTokens: number;
   };
 }
 
@@ -129,16 +133,25 @@ export class PromptTester<
       const model = this.createModel(modelConfig);
       const structuredModel = model.withStructuredOutput(
         this.config.outputSchema,
+        { includeRaw: true },
       );
-      const output = await structuredModel.invoke(prompt);
+      const response = await structuredModel.invoke(prompt);
+
+      // Extract token usage from the raw response metadata
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const usageMetadata = (response.raw as any)?.usage_metadata;
+      const inputTokens = usageMetadata?.input_tokens as number | undefined;
+      const outputTokens = usageMetadata?.output_tokens as number | undefined;
 
       return {
         testName: testCase.name,
         model: modelName,
         success: true,
-        output: output as TOutput,
+        output: response.parsed as TOutput,
         durationMs: Date.now() - startTime,
         prompt,
+        inputTokens,
+        outputTokens,
       };
     } catch (error) {
       return {
@@ -175,12 +188,27 @@ export class PromptTester<
 
     const passed = results.filter((r) => r.success).length;
     const failed = results.filter((r) => !r.success).length;
+    const totalInputTokens = results.reduce(
+      (sum, r) => sum + (r.inputTokens ?? 0),
+      0,
+    );
+    const totalOutputTokens = results.reduce(
+      (sum, r) => sum + (r.outputTokens ?? 0),
+      0,
+    );
 
     const suiteResult: TestSuiteResult<TOutput> = {
       featureName: this.config.featureName,
       timestamp: new Date().toISOString(),
       results,
-      summary: { total: results.length, passed, failed, totalTimeMs },
+      summary: {
+        total: results.length,
+        passed,
+        failed,
+        totalTimeMs,
+        totalInputTokens,
+        totalOutputTokens,
+      },
     };
 
     // Save to file
@@ -211,6 +239,12 @@ export class PromptTester<
       content += `${'─'.repeat(80)}\n`;
       content += `[${status}] ${result.testName}\n`;
       content += `Model: ${result.model} | Duration: ${result.durationMs}ms\n`;
+      if (
+        result.inputTokens !== undefined ||
+        result.outputTokens !== undefined
+      ) {
+        content += `Tokens: ${result.inputTokens ?? '?'} in / ${result.outputTokens ?? '?'} out\n`;
+      }
       content += `${'─'.repeat(80)}\n\n`;
 
       content += `PROMPT:\n${result.prompt}\n\n`;
@@ -231,6 +265,7 @@ export class PromptTester<
     content += `Failed: ${suiteResult.summary.failed}\n`;
     content += `Success Rate: ${((suiteResult.summary.passed / suiteResult.summary.total) * 100).toFixed(1)}%\n`;
     content += `Total Time: ${(suiteResult.summary.totalTimeMs / 1000).toFixed(2)}s\n`;
+    content += `Total Tokens: ${suiteResult.summary.totalInputTokens} in / ${suiteResult.summary.totalOutputTokens} out\n`;
 
     fs.writeFileSync(filePath, content);
     return filePath;
@@ -248,7 +283,13 @@ export class PromptTester<
 
     for (const result of results) {
       const icon = result.success ? '✅' : '❌';
-      console.log(`${icon} ${result.testName} (${result.durationMs}ms)`);
+      const tokens =
+        result.inputTokens !== undefined
+          ? ` | ${result.inputTokens}/${result.outputTokens} tokens`
+          : '';
+      console.log(
+        `${icon} ${result.testName} (${result.durationMs}ms${tokens})`,
+      );
     }
 
     console.log(`\n${'─'.repeat(60)}`);
@@ -256,6 +297,9 @@ export class PromptTester<
       `Total: ${summary.total} | ✅ ${summary.passed} | ❌ ${summary.failed}`,
     );
     console.log(`Time: ${(summary.totalTimeMs / 1000).toFixed(2)}s`);
+    console.log(
+      `Tokens: ${summary.totalInputTokens} in / ${summary.totalOutputTokens} out`,
+    );
     console.log(`${'─'.repeat(60)}`);
     console.log(`\n📁 Full outputs: ${filePath}\n`);
   }

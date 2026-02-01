@@ -12,6 +12,8 @@ import { WMM_TEST_CONFIG } from './cases/word-meaning-match.cases';
 import { TM_TEST_CONFIG } from './cases/translation-marking.cases';
 import { TG_TEST_CONFIG } from './cases/translation-generation.cases';
 import { SG_TEST_CONFIG } from './cases/story-generation.cases';
+import { CG_TEST_CONFIG } from './cases/conversation-generation.cases';
+import { CLG_TEST_CONFIG } from './cases/custom-lesson-generation.cases';
 
 // ============================================================================
 // REGISTER FEATURES HERE
@@ -25,6 +27,8 @@ const FEATURES: Record<string, PromptTestConfig<any, any>> = {
   tm: TM_TEST_CONFIG,
   tg: TG_TEST_CONFIG,
   sg: SG_TEST_CONFIG,
+  cg: CG_TEST_CONFIG,
+  clg: CLG_TEST_CONFIG,
 };
 
 // ============================================================================

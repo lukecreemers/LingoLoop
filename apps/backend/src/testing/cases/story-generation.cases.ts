@@ -10,9 +10,10 @@ export interface SGInputs extends Record<string, string | number | string[]> {
   userLevel: string;
   instructions: string;
   textType: string; // 'story' | 'news article' | 'email' | 'retelling' | 'blog post'
-  textLength: string; // 'short' | 'medium' | 'long'
+  textLength: 'short' | 'medium' | 'long';
   userWordList: string[];
   userGrammarList: string[];
+  targetLanguage: string;
 }
 
 // ============================================================================
