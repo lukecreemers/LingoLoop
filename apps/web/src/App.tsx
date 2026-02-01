@@ -7,192 +7,211 @@ import { useLessonStore } from "./stores/useLessonStore";
 // Demo lesson data for testing the lesson player
 const demoLessonData: CompiledLesson = {
   units: [
-    //     {
-    //       type: "flashcard",
-    //       plan: {
-    //         type: "flashcard",
-    //         instructions: "Basic greeting vocabulary for introductions",
-    //         cardCount: 6,
-    //       },
-    //       output: {
-    //         theme: "Greetings & Introductions",
-    //         cards: [
-    //           {
-    //             term: "Hola",
-    //             definition: "Hello / Hi",
-    //             example: "¡Hola! ¿Cómo estás?",
-    //             exampleTranslation: "Hello! How are you?",
-    //           },
-    //           {
-    //             term: "Me llamo",
-    //             definition: "My name is (lit. I call myself)",
-    //             example: "Me llamo María.",
-    //             exampleTranslation: "My name is María.",
-    //           },
-    //           {
-    //             term: "Mucho gusto",
-    //             definition: "Nice to meet you (lit. Much pleasure)",
-    //             example: "Mucho gusto, Juan.",
-    //             exampleTranslation: "Nice to meet you, Juan.",
-    //           },
-    //           {
-    //             term: "¿Cómo te llamas?",
-    //             definition: "What's your name? (informal)",
-    //             example: "¡Hola! ¿Cómo te llamas?",
-    //             exampleTranslation: "Hello! What's your name?",
-    //           },
-    //           {
-    //             term: "Soy de...",
-    //             definition: "I'm from...",
-    //             example: "Soy de México.",
-    //             exampleTranslation: "I'm from Mexico.",
-    //           },
-    //           {
-    //             term: "¿De dónde eres?",
-    //             definition: "Where are you from? (informal)",
-    //             example: "¿De dónde eres tú?",
-    //             exampleTranslation: "Where are you from?",
-    //           },
-    //         ],
-    //       },
-    //     },
-    //     {
-    //       type: "conversation",
-    //       plan: {
-    //         type: "conversation",
-    //         instructions:
-    //           "Create a conversation about two people meeting and introducing themselves, discussing where they're from and what they do for work.",
-    //         conversationLength: "medium",
-    //       },
-    //       output: {
-    //         characters: [
-    //           { name: "María", age: "adult", gender: "female" },
-    //           { name: "Juan", age: "adult", gender: "male" },
-    //         ],
-    //         conversation: `**María:** ¡Hola! Me llamo María. ¿Cómo te llamas?
-    // **Juan:** Hola, María. Me llamo Juan. Mucho gusto.
-    // **María:** Mucho gusto, Juan. Soy de México. ¿De dónde eres tú?
-    // **Juan:** Soy de España, de Barcelona. ¿Vives aquí en la ciudad?
-    // **María:** Sí, vivo aquí desde hace tres años. Trabajo en una empresa de tecnología.
-    // **Juan:** ¡Qué interesante! Yo soy profesor de español en la universidad.
-    // **María:** ¡Qué bien! Entonces hablas muy bien el español, obviamente.
-    // **Juan:** Jaja, sí, es mi lengua materna. ¿Te gusta vivir aquí?
-    // **María:** Me encanta. La gente es muy amable y hay mucha cultura.`,
-    //       },
-    //     },
-    //     {
-    //       type: "explanation",
-    //       plan: {
-    //         type: "explanation",
-    //         instructions:
-    //           "Explain how to introduce yourself in Spanish, including key phrases like 'Me llamo', 'Soy de', and 'Mucho gusto'. Cover the reflexive verb 'llamarse'.",
-    //       },
-    //       output: {
-    //         explanation: `## Introducing Yourself in Spanish
+    {
+      type: "flashcard",
+      plan: {
+        type: "flashcard",
+        instructions: "Basic greeting vocabulary for introductions",
+        cardCount: 6,
+      },
+      output: {
+        theme: "Greetings & Introductions",
+        cards: [
+          {
+            term: "Hola",
+            definition: "Hello / Hi",
+            example: "¡Hola! ¿Cómo estás?",
+            exampleTranslation: "Hello! How are you?",
+          },
+          {
+            term: "Me llamo",
+            definition: "My name is (lit. I call myself)",
+            example: "Me llamo María.",
+            exampleTranslation: "My name is María.",
+          },
+          {
+            term: "Mucho gusto",
+            definition: "Nice to meet you (lit. Much pleasure)",
+            example: "Mucho gusto, Juan.",
+            exampleTranslation: "Nice to meet you, Juan.",
+          },
+          {
+            term: "¿Cómo te llamas?",
+            definition: "What's your name? (informal)",
+            example: "¡Hola! ¿Cómo te llamas?",
+            exampleTranslation: "Hello! What's your name?",
+          },
+        ],
+      },
+    },
+    {
+      type: "explanation",
+      plan: {
+        type: "explanation",
+        instructions:
+          "Explain how to introduce yourself in Spanish, including key phrases like 'Me llamo', 'Soy de', and 'Mucho gusto'. Cover the reflexive verb 'llamarse'.",
+      },
+      output: {
+        explanation: `## Introducing Yourself in Spanish
 
-    // When meeting someone new in Spanish, you'll need to know how to say your name and ask about theirs.
+When meeting someone new in Spanish, you'll need to know how to say your name and ask about theirs.
 
-    // ### Key Phrases
+### Key Phrases
 
-    // - **Me llamo...** — "My name is..." (literally: "I call myself...")
-    // - **Soy de...** — "I'm from..."
-    // - **Mucho gusto** — "Nice to meet you"
+- **Me llamo...** — "My name is..." (literally: "I call myself...")
+- **Soy de...** — "I'm from..."
+- **Mucho gusto** — "Nice to meet you"
 
-    // ### The Verb "Llamarse"
+### The Verb "Llamarse"
 
-    // This is a **reflexive verb**, which means it includes a pronoun that refers back to the subject:
+This is a **reflexive verb**, which means it includes a pronoun that refers back to the subject:
 
-    // \`\`\`
-    // Yo me llamo María
-    // Tú te llamas Juan
-    // Él/Ella se llama Pedro
-    // \`\`\`
+\`\`\`
+Yo me llamo María
+Tú te llamas Juan
+Él/Ella se llama Pedro
+\`\`\`
 
-    // ### Example Conversation
+### Example Conversation
 
-    // > **A:** ¡Hola! Me llamo María. ¿Cómo te llamas?
-    // > **B:** Hola, María. Me llamo Juan. Mucho gusto.
-    // > **A:** Mucho gusto, Juan. Soy de México. ¿Y tú?
+> **A:** ¡Hola! Me llamo María. ¿Cómo te llamas?
+> **B:** Hola, María. Me llamo Juan. Mucho gusto.
+> **A:** Mucho gusto, Juan. Soy de México. ¿Y tú?
 
-    // Now let's practice these phrases!`,
-    //       },
-    //     },
-    //     {
-    //       type: "fill in the blanks",
-    //       plan: {
-    //         type: "fill in the blanks",
-    //         instructions:
-    //           "Practice using 'me llamo' and 'soy' for self-introduction.",
-    //         blankAmount: 1,
-    //         distractorInstructions: "Include similar verb forms as distractors.",
-    //         distractorCount: 3,
-    //       },
-    //       output: {
-    //         exercises: [
-    //           {
-    //             template: "Hola, me [*] María y soy de México.",
-    //             answers: ["llamo"],
-    //             distractors: ["llamamos", "llamar", "soy"],
-    //           },
-    //           {
-    //             template: "Yo [*] ingeniero y estoy muy feliz.",
-    //             answers: ["soy"],
-    //             distractors: ["somos", "ser", "estoy"],
-    //           },
-    //         ],
-    //       },
-    //     },
-    //     {
-    //       type: "word meaning match",
-    //       plan: {
-    //         type: "word meaning match",
-    //         matchType: "Spanish Word → English Translation",
-    //         theme: "Basic greetings and common phrases",
-    //         pairCount: 3,
-    //         distractorCount: 2,
-    //       },
-    //       output: {
-    //         exercises: [
-    //           {
-    //             columnLabels: {
-    //               a: "Spanish",
-    //               b: "English",
-    //             },
-    //             pairs: [
-    //               ["Hola", "Hello"],
-    //               ["Gracias", "Thank you"],
-    //               ["Buenos días", "Good morning"],
-    //             ],
-    //             distractors: ["Goodbye", "Good night"],
-    //             instruction:
-    //               "Match the Spanish words with their English translations.",
-    //           },
-    //         ],
-    //       },
-    //     },
-    //     {
-    //       type: "write in the blanks",
-    //       plan: {
-    //         type: "write in the blanks",
-    //         instructions:
-    //           "Practice conjugating verbs in context with daily activities.",
-    //         blankAmount: 1,
-    //       },
-    //       output: {
-    //         exercises: [
-    //           {
-    //             template: "Yo [*] con mis amigos todos los días.",
-    //             blanks: [
-    //               {
-    //                 correctAnswer: "hablo",
-    //                 clue: "(hablar)",
-    //                 acceptedAlternates: [],
-    //               },
-    //             ],
-    //           },
-    //         ],
-    //       },
-    //     },
+Now let's practice these phrases!`,
+      },
+    },
+    {
+      type: "fill in the blanks",
+      plan: {
+        type: "fill in the blanks",
+        instructions:
+          "Practice using 'me llamo' and 'soy' for self-introduction.",
+        blankAmount: 1,
+        distractorInstructions: "Include similar verb forms as distractors.",
+        distractorCount: 3,
+      },
+      output: {
+        exercises: [
+          {
+            template: "Hola, me [*] María y soy de México.",
+            answers: ["llamo"],
+            distractors: ["llamamos", "llamar", "soy"],
+          },
+          {
+            template: "Yo [*] ingeniero y trabajo en una oficina.",
+            answers: ["soy"],
+            distractors: ["somos", "ser", "estoy"],
+          },
+        ],
+      },
+    },
+    {
+      type: "word meaning match",
+      plan: {
+        type: "word meaning match",
+        matchType: "Spanish Word → English Translation",
+        theme: "Basic greetings and common phrases",
+        pairCount: 3,
+        distractorCount: 2,
+      },
+      output: {
+        exercises: [
+          {
+            columnLabels: {
+              a: "Spanish",
+              b: "English",
+            },
+            pairs: [
+              ["Hola", "Hello"],
+              ["Gracias", "Thank you"],
+              ["Buenos días", "Good morning"],
+            ],
+            distractors: ["Goodbye", "Good night"],
+            instruction:
+              "Match the Spanish words with their English translations.",
+          },
+        ],
+      },
+    },
+    {
+      type: "word order",
+      plan: {
+        type: "word order",
+        instructions: "Daily routine sentences with reflexive verbs",
+        sentenceCount: 3,
+      },
+      output: {
+        sentences: [
+          {
+            sentence: "Me levanto a las siete.",
+            translation: "I get up at seven.",
+          },
+          {
+            sentence: "¿Dónde vives tú?",
+            translation: "Where do you live?",
+          },
+          {
+            sentence: "El gato negro duerme.",
+            translation: "The black cat sleeps.",
+          },
+        ],
+      },
+    },
+    {
+      type: "write in the blanks",
+      plan: {
+        type: "write in the blanks",
+        instructions:
+          "Practice conjugating verbs in context with daily activities.",
+        blankAmount: 1,
+      },
+      output: {
+        exercises: [
+          {
+            template: "Yo [*] con mis amigos todos los días.",
+            blanks: [
+              {
+                correctAnswer: "hablo",
+                clue: "(hablar)",
+                acceptedAlternates: [],
+              },
+            ],
+          },
+          {
+            template: "María [*] en una empresa grande.",
+            blanks: [
+              {
+                correctAnswer: "trabaja",
+                clue: "(trabajar)",
+                acceptedAlternates: [],
+              },
+            ],
+          },
+        ],
+      },
+    },
+    {
+      type: "conversation",
+      plan: {
+        type: "conversation",
+        instructions:
+          "Create a conversation about two people meeting and introducing themselves.",
+        conversationLength: "medium",
+      },
+      output: {
+        characters: [
+          { name: "María", age: "adult", gender: "female" },
+          { name: "Juan", age: "adult", gender: "male" },
+        ],
+        conversation: `**María:** ¡Hola! Me llamo María. ¿Cómo te llamas?
+**Juan:** Hola, María. Me llamo Juan. Mucho gusto.
+**María:** Mucho gusto, Juan. Soy de México. ¿De dónde eres tú?
+**Juan:** Soy de España, de Barcelona. ¿Vives aquí en la ciudad?
+**María:** Sí, vivo aquí desde hace tres años. Trabajo en una empresa de tecnología.
+**Juan:** ¡Qué interesante! Yo soy profesor de español en la universidad.`,
+      },
+    },
     {
       type: "writing practice",
       plan: {

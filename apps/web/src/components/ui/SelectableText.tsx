@@ -184,41 +184,39 @@ export function SelectableText({
   );
 
   // Calculate popup position helper
-  const calculatePosition = useCallback(
-    (rect: DOMRect) => {
-      const popupWidth = 320;
-      const popupHeight = 280;
-      const halfPopup = popupWidth / 2;
-      const viewportWidth = window.innerWidth;
-      const viewportHeight = window.innerHeight;
-      const margin = 16;
+  const calculatePosition = useCallback((rect: DOMRect) => {
+    const popupWidth = 320;
+    const popupHeight = 280;
+    const halfPopup = popupWidth / 2;
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+    const margin = 16;
 
-      // Calculate X position (centered on selection)
-      let x = rect.left + rect.width / 2;
-      if (x < halfPopup + margin) {
-        x = halfPopup + margin;
-      } else if (x > viewportWidth - halfPopup - margin) {
-        x = viewportWidth - halfPopup - margin;
-      }
+    // Calculate X position (centered on selection)
+    let x = rect.left + rect.width / 2;
+    if (x < halfPopup + margin) {
+      x = halfPopup + margin;
+    } else if (x > viewportWidth - halfPopup - margin) {
+      x = viewportWidth - halfPopup - margin;
+    }
 
-      // Determine if we should show above or below
-      const spaceBelow = viewportHeight - rect.bottom;
-      const spaceAbove = rect.top;
-      const shouldShowAbove = spaceBelow < popupHeight + margin && spaceAbove > spaceBelow;
+    // Determine if we should show above or below
+    const spaceBelow = viewportHeight - rect.bottom;
+    const spaceAbove = rect.top;
+    const shouldShowAbove =
+      spaceBelow < popupHeight + margin && spaceAbove > spaceBelow;
 
-      let y: number;
-      if (shouldShowAbove) {
-        // Position above the text (bottom of popup at top of selection)
-        y = rect.top - margin;
-      } else {
-        // Position below the text
-        y = rect.bottom + margin;
-      }
+    let y: number;
+    if (shouldShowAbove) {
+      // Position above the text (bottom of popup at top of selection)
+      y = rect.top - margin;
+    } else {
+      // Position below the text
+      y = rect.bottom + margin;
+    }
 
-      return { x, y, showAbove: shouldShowAbove };
-    },
-    []
-  );
+    return { x, y, showAbove: shouldShowAbove };
+  }, []);
 
   // Handle text selection
   const handleMouseUp = useCallback(async () => {
@@ -231,7 +229,10 @@ export function SelectableText({
       containerRef.current
     ) {
       const range = window.getSelection()?.getRangeAt(0);
-      if (range && containerRef.current.contains(range.commonAncestorContainer)) {
+      if (
+        range &&
+        containerRef.current.contains(range.commonAncestorContainer)
+      ) {
         const rect = range.getBoundingClientRect();
         const { x, y, showAbove: above } = calculatePosition(rect);
 
@@ -337,7 +338,9 @@ export function SelectableText({
           style={{
             left: `${position.x}px`,
             top: showAbove ? undefined : `${position.y}px`,
-            bottom: showAbove ? `${window.innerHeight - position.y}px` : undefined,
+            bottom: showAbove
+              ? `${window.innerHeight - position.y}px`
+              : undefined,
             transform: "translateX(-50%)",
           }}
         >
@@ -352,7 +355,11 @@ export function SelectableText({
             {/* Header */}
             <div className="flex items-center justify-between px-3 py-2 border-b border-purple-200 bg-purple-50">
               <span className="text-sm font-bold text-purple-800 max-w-[250px] truncate">
-                "{selection.length > 40 ? selection.slice(0, 40) + "..." : selection}"
+                "
+                {selection.length > 40
+                  ? selection.slice(0, 40) + "..."
+                  : selection}
+                "
               </span>
               <button
                 onClick={handleClose}
@@ -418,7 +425,7 @@ export function SelectableText({
                               {item.word}
                             </span>
                             <span className="text-gray-400">→</span>
-                            <span className="text-gray-700 flex-1">
+                            <span className="text-gray-700 flex-1 text-start">
                               {item.translation}
                               {item.note && (
                                 <span className="text-xs text-gray-400 ml-1">
@@ -442,4 +449,3 @@ export function SelectableText({
 }
 
 export default SelectableText;
-

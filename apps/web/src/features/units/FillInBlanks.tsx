@@ -4,7 +4,6 @@ import { HTML5Backend } from "react-dnd-html5-backend";
 import type { FIBOutput, FillInBlanksUnit } from "@shared";
 import WordChip from "../../components/ui/WordChip";
 import SentenceWithBlanks from "../../components/ui/SentenceWithBlanks";
-import ProgressBar from "../../components/ui/ProgressBar";
 import { ExplainWrongButton } from "../../components/ui/ExplainWrong";
 import { RedoButton } from "../../components/ui/RedoButton";
 
@@ -27,6 +26,9 @@ export default function FillInBlanks({
   const [slotStatuses, setSlotStatuses] = useState<SlotStatus[]>([]);
 
   const [score, setScore] = useState({ correct: 0, total: 0 });
+  const [exerciseResults, setExerciseResults] = useState<
+    ("pending" | "correct" | "incorrect")[]
+  >(new Array(data.exercises.length).fill("pending"));
 
   const currentExercise = data.exercises[currentIndex];
   const blankCount = (currentExercise.template.match(/\[\*\]/g) || []).length;
@@ -37,6 +39,13 @@ export default function FillInBlanks({
     setSlotStatuses(new Array(blankCount).fill("empty"));
     setIsChecked(false);
   }, [currentIndex, blankCount]);
+
+  // Full reset function for redo
+  const resetAll = useCallback(() => {
+    setCurrentIndex(0);
+    setScore({ correct: 0, total: 0 });
+    setExerciseResults(new Array(data.exercises.length).fill("pending"));
+  }, [data.exercises.length]);
 
   // Deduplicate and shuffle word options for current exercise
   const wordOptions = useMemo(() => {
@@ -96,6 +105,14 @@ export default function FillInBlanks({
       correct: prev.correct + correctCount,
       total: prev.total + blankCount,
     }));
+
+    // Track exercise-level result
+    const allCorrectInExercise = newStatuses.every((s) => s === "correct");
+    setExerciseResults((prev) => {
+      const newResults = [...prev];
+      newResults[currentIndex] = allCorrectInExercise ? "correct" : "incorrect";
+      return newResults;
+    });
   };
 
   const handleNext = () => {
@@ -111,7 +128,7 @@ export default function FillInBlanks({
 
   return (
     <DndProvider backend={HTML5Backend}>
-      <div className="h-[calc(100vh-100px)]  bg-bauhaus-white text-black font-sans flex flex-col selection:bg-rose-200 overflow-hidden">
+      <div className="h-[calc(100vh-100px)]  bg-bauhaus-white text-black font-sans flex flex-col selection:bg-rose-200">
         {/* Header - Fixed Height */}
         <header className="px-8 pt-8 pb-4 w-full shrink-0">
           <div className="flex items-end justify-between mb-6 border-b-4 border-black pb-4">
@@ -137,10 +154,23 @@ export default function FillInBlanks({
             </div>
           </div>
 
-          <ProgressBar
-            current={currentIndex + 1}
-            total={data.exercises.length}
-          />
+          {/* Progress dots */}
+          <div className="flex gap-2">
+            {data.exercises.map((_, i) => (
+              <div
+                key={i}
+                className={`h-2 flex-1 transition-colors ${
+                  i === currentIndex
+                    ? "bg-zinc-700"
+                    : exerciseResults[i] === "correct"
+                    ? "bg-bauhaus-green"
+                    : exerciseResults[i] === "incorrect"
+                    ? "bg-bauhaus-red"
+                    : "bg-zinc-200"
+                }`}
+              />
+            ))}
+          </div>
         </header>
 
         {/* Main Content - Flex Grow to fill space */}
@@ -213,10 +243,7 @@ export default function FillInBlanks({
             {isChecked && isLastExercise && (
               <RedoButton
                 unitPlan={plan}
-                onRedo={() => {
-                  setCurrentIndex(0);
-                  setScore({ correct: 0, total: 0 });
-                }}
+                onRedo={resetAll}
               />
             )}
             <button

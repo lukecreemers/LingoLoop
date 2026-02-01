@@ -72,6 +72,12 @@ Open-ended writing exercise where the user responds to prompts in the target lan
 - instructions: The topic or theme for writing prompts (e.g., "Daily routines", "Opinion on technology", "Describe a memorable experience").
 - promptCount: Number of writing prompts to generate (typically 2-4).
 *Critical Goal: FREE-FORM PRODUCTION. This is the highest level of language production - users write complete responses that get marked for grammar, vocabulary, and communication. Use at the END of a lesson to consolidate learning. For beginners, keep prompts simple (describe, list). For advanced, include opinion and hypothetical prompts.*
+
+**9. word order (WO Agent)**
+Generates sentences that the user must unscramble by dragging words into the correct order.
+- instructions: The theme or grammar focus for the sentences (e.g., "Questions with interrogatives", "Sentences with reflexive verbs", "Adjective placement").
+- sentenceCount: Number of sentences to generate (typically 5-8).
+*Critical Goal: SYNTACTIC AWARENESS. Tests the user's understanding of word order rules in the target language. Great for drilling sentence structure patterns. The frontend scrambles the words and the user drags them into order. Keep sentences appropriate to level - beginners get 4-7 words, advanced can have 10+ with complex clauses.*
 `.trim();
 
 // ============================================================================

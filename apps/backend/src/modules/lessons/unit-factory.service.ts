@@ -11,6 +11,7 @@ import {
   EXOutputSchema,
   FCOutputSchema,
   WPOutputSchema,
+  WOOutputSchema,
 } from 'src/shared';
 import type {
   LessonPlanUnit,
@@ -23,6 +24,7 @@ import type {
   ConversationUnit,
   FlashcardUnit,
   WritingPracticeUnit,
+  WordOrderUnit,
 } from 'src/shared';
 import type { RedoUnitInput } from 'src/shared/types/redo-unit.dto';
 
@@ -35,6 +37,7 @@ import { TG_PROMPT_TEMPLATE } from 'src/testing/cases/translation-generation.cas
 import { CG_PROMPT_TEMPLATE } from 'src/testing/cases/conversation-generation.cases';
 import { FC_PROMPT_TEMPLATE } from 'src/testing/cases/flashcard.cases';
 import { WP_PROMPT_TEMPLATE } from 'src/testing/cases/writing-practice.cases';
+import { WO_PROMPT_TEMPLATE } from 'src/testing/cases/word-order.cases';
 import type { LessonContext } from './lesson.context';
 import { DEFAULT_WORD_LIST, DEFAULT_GRAMMAR_LIST } from './lesson.context';
 
@@ -77,6 +80,8 @@ export class UnitFactoryService {
         return this.executeConversationUnit(unit, context);
       case 'writing practice':
         return this.executeWritingPracticeUnit(unit, context);
+      case 'word order':
+        return this.executeWordOrderUnit(unit, context);
       default:
         throw new Error(`Unknown unit type: ${(unit as LessonPlanUnit).type}`);
     }
@@ -154,6 +159,8 @@ export class UnitFactoryService {
           context,
           avoidContext,
         );
+      case 'word order':
+        return this.executeWordOrderUnit(input.unitPlan, context, avoidContext);
       default:
         throw new Error(
           `Unknown unit type: ${(input.unitPlan as LessonPlanUnit).type}`,
@@ -200,6 +207,12 @@ export class UnitFactoryService {
           .map((p) => p.prompt)
           .join('; ');
         return `IMPORTANT: Generate completely different writing prompts. DO NOT use any of these prompts or similar variations: ${prompts}`;
+
+      case 'word order':
+        const woSentences = previousOutput.output.sentences
+          .map((s) => s.sentence)
+          .join('; ');
+        return `IMPORTANT: Generate completely different sentences. DO NOT use any of these sentences or similar variations: ${woSentences}`;
 
       default:
         return '';
@@ -463,6 +476,33 @@ export class UnitFactoryService {
     const output = await structuredLlm.invoke(prompt);
 
     return { type: 'writing practice', plan: unit, output };
+  }
+
+  // ============================================================================
+  // WORD ORDER GENERATION
+  // ============================================================================
+
+  private async executeWordOrderUnit(
+    unit: WordOrderUnit,
+    context: LessonContext,
+    avoidContext?: string,
+  ): Promise<CompiledUnit> {
+    let prompt = this.buildPrompt(WO_PROMPT_TEMPLATE, {
+      userLevel: context.userLevel,
+      targetLanguage: context.targetLanguage,
+      nativeLanguage: context.nativeLanguage,
+      instructions: unit.instructions,
+      sentenceCount: unit.sentenceCount.toString(),
+    });
+
+    if (avoidContext) {
+      prompt = `${avoidContext}\n\n${prompt}`;
+    }
+
+    const structuredLlm = this.llm.withStructuredOutput(WOOutputSchema);
+    const output = await structuredLlm.invoke(prompt);
+
+    return { type: 'word order', plan: unit, output };
   }
 
   // ============================================================================

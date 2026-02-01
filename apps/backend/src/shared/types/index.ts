@@ -42,3 +42,4 @@ export * from './redo-unit.dto';
 export * from './flashcard.types';
 export * from './writing-practice.types';
 export * from './writing-practice.dto';
+export * from './word-order.types';

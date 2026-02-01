@@ -1,7 +1,6 @@
 import { useState, useCallback, useEffect } from "react";
 import type { WIBOutput, WriteInBlanksUnit } from "@shared";
 import SentenceWithInputs from "../../components/ui/SentenceWithInputs";
-import ProgressBar from "../../components/ui/ProgressBar";
 import { ExplainWrongButton } from "../../components/ui/ExplainWrong";
 import { RedoButton } from "../../components/ui/RedoButton";
 
@@ -24,6 +23,9 @@ export default function WriteInBlanks({
   const [slotStatuses, setSlotStatuses] = useState<SlotStatus[]>([]);
 
   const [score, setScore] = useState({ correct: 0, total: 0 });
+  const [exerciseResults, setExerciseResults] = useState<
+    ("pending" | "correct" | "incorrect")[]
+  >(new Array(data.exercises.length).fill("pending"));
 
   const currentExercise = data.exercises[currentIndex];
   const blankCount = currentExercise.blanks.length;
@@ -34,6 +36,13 @@ export default function WriteInBlanks({
     setSlotStatuses(new Array(blankCount).fill("empty"));
     setIsChecked(false);
   }, [currentIndex, blankCount]);
+
+  // Full reset function for redo
+  const resetAll = useCallback(() => {
+    setCurrentIndex(0);
+    setScore({ correct: 0, total: 0 });
+    setExerciseResults(new Array(data.exercises.length).fill("pending"));
+  }, [data.exercises.length]);
 
   const handleChange = useCallback((slotIndex: number, value: string) => {
     setFilledAnswers((prev) => {
@@ -75,6 +84,14 @@ export default function WriteInBlanks({
       correct: prev.correct + correctCount,
       total: prev.total + blankCount,
     }));
+
+    // Track exercise-level result
+    const allCorrectInExercise = newStatuses.every((s) => s === "correct");
+    setExerciseResults((prev) => {
+      const newResults = [...prev];
+      newResults[currentIndex] = allCorrectInExercise ? "correct" : "incorrect";
+      return newResults;
+    });
   };
 
   const handleNext = () => {
@@ -118,10 +135,23 @@ export default function WriteInBlanks({
           </div>
         </div>
 
-        <ProgressBar
-          current={currentIndex + 1}
-          total={data.exercises.length}
-        />
+        {/* Progress dots */}
+        <div className="flex gap-2">
+          {data.exercises.map((_, i) => (
+            <div
+              key={i}
+              className={`h-2 flex-1 transition-colors ${
+                i === currentIndex
+                  ? "bg-zinc-700"
+                  : exerciseResults[i] === "correct"
+                  ? "bg-bauhaus-green"
+                  : exerciseResults[i] === "incorrect"
+                  ? "bg-bauhaus-red"
+                  : "bg-zinc-200"
+              }`}
+            />
+          ))}
+        </div>
       </header>
 
       {/* Main Content - Flex Grow to fill space */}
@@ -188,10 +218,7 @@ export default function WriteInBlanks({
           {isChecked && isLastExercise && (
             <RedoButton
               unitPlan={plan}
-              onRedo={() => {
-                setCurrentIndex(0);
-                setScore({ correct: 0, total: 0 });
-              }}
+              onRedo={resetAll}
             />
           )}
           <button

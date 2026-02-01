@@ -1,6 +1,5 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import type { WMMOutput, WordMatchUnit } from "@shared";
-import ProgressBar from "../../components/ui/ProgressBar";
 import { ExplainWrongButton } from "../../components/ui/ExplainWrong";
 import { RedoButton } from "../../components/ui/RedoButton";
 
@@ -31,6 +30,9 @@ export default function WordMeaningMatch({
   );
 
   const [score, setScore] = useState({ correct: 0, total: 0 });
+  const [exerciseResults, setExerciseResults] = useState<
+    ("pending" | "correct" | "incorrect")[]
+  >(new Array(data.exercises.length).fill("pending"));
 
   const currentExercise = data.exercises[currentIndex];
   const pairCount = currentExercise.pairs.length;
@@ -61,12 +63,23 @@ export default function WordMeaningMatch({
   }, [currentExercise]);
 
   // Reset state when exercise changes
-  useMemo(() => {
+  useEffect(() => {
     setSelectedA(null);
     setMatches([]);
     setIsChecked(false);
     setMatchStatuses(new Map());
   }, [currentIndex]);
+
+  // Full reset function for redo
+  const resetAll = useCallback(() => {
+    setCurrentIndex(0);
+    setScore({ correct: 0, total: 0 });
+    setExerciseResults(new Array(data.exercises.length).fill("pending"));
+    setSelectedA(null);
+    setMatches([]);
+    setIsChecked(false);
+    setMatchStatuses(new Map());
+  }, [data.exercises.length]);
 
   // Check if an A item is already matched
   const getMatchedBForA = (aIndex: number): number | null => {
@@ -135,6 +148,14 @@ export default function WordMeaningMatch({
       correct: prev.correct + correctCount,
       total: prev.total + pairCount,
     }));
+
+    // Track exercise-level result
+    const allCorrectInExercise = correctCount === pairCount;
+    setExerciseResults((prev) => {
+      const newResults = [...prev];
+      newResults[currentIndex] = allCorrectInExercise ? "correct" : "incorrect";
+      return newResults;
+    });
   };
 
   const handleNext = () => {
@@ -189,10 +210,23 @@ export default function WordMeaningMatch({
           </div>
         </div>
 
-        <ProgressBar
-          current={currentIndex + 1}
-          total={data.exercises.length}
-        />
+        {/* Progress dots */}
+        <div className="flex gap-2">
+          {data.exercises.map((_, i) => (
+            <div
+              key={i}
+              className={`h-2 flex-1 transition-colors ${
+                i === currentIndex
+                  ? "bg-zinc-700"
+                  : exerciseResults[i] === "correct"
+                  ? "bg-bauhaus-green"
+                  : exerciseResults[i] === "incorrect"
+                  ? "bg-bauhaus-red"
+                  : "bg-zinc-200"
+              }`}
+            />
+          ))}
+        </div>
       </header>
 
       {/* Main Content */}
@@ -408,10 +442,7 @@ export default function WordMeaningMatch({
           {isChecked && isLastExercise && (
             <RedoButton
               unitPlan={plan}
-              onRedo={() => {
-                setCurrentIndex(0);
-                setScore({ correct: 0, total: 0 });
-              }}
+              onRedo={resetAll}
             />
           )}
           <button

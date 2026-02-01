@@ -7,6 +7,7 @@ import { WIBOutputSchema } from './write-in-blanks.types';
 import { EXOutputSchema } from './explanation.types';
 import { FCOutputSchema } from './flashcard.types';
 import { WPOutputSchema } from './writing-practice.types';
+import { WOOutputSchema } from './word-order.types';
 
 // ============================================================================
 // UNIT INSTRUCTION SCHEMAS (from lesson plan)
@@ -117,6 +118,18 @@ export const WritingPracticeUnitSchema = z.object({
     .describe('The number of writing prompts to generate (typically 2-4).'),
 });
 
+export const WordOrderUnitSchema = z.object({
+  type: z.literal('word order'),
+  instructions: z
+    .string()
+    .describe(
+      'The theme or grammar focus for the sentences (e.g., "Questions with interrogatives", "Sentences with reflexive verbs").',
+    ),
+  sentenceCount: z
+    .number()
+    .describe('The number of sentences to generate (typically 5-8).'),
+});
+
 // ============================================================================
 // LESSON PLAN OUTPUT SCHEMA
 // ============================================================================
@@ -130,6 +143,7 @@ export const LessonPlanUnitSchema = z.discriminatedUnion('type', [
   TranslationUnitSchema,
   ConversationUnitSchema,
   WritingPracticeUnitSchema,
+  WordOrderUnitSchema,
 ]);
 
 export const CLGOutputSchema = z.object({
@@ -193,6 +207,12 @@ export const CompiledWritingPracticeUnitSchema = z.object({
   output: WPOutputSchema,
 });
 
+export const CompiledWordOrderUnitSchema = z.object({
+  type: z.literal('word order'),
+  plan: WordOrderUnitSchema,
+  output: WOOutputSchema,
+});
+
 export const CompiledUnitSchema = z.discriminatedUnion('type', [
   CompiledFlashcardUnitSchema,
   CompiledExplanationUnitSchema,
@@ -202,6 +222,7 @@ export const CompiledUnitSchema = z.discriminatedUnion('type', [
   CompiledTranslationUnitSchema,
   CompiledConversationUnitSchema,
   CompiledWritingPracticeUnitSchema,
+  CompiledWordOrderUnitSchema,
 ]);
 
 export const CompiledLessonSchema = z.object({
@@ -220,6 +241,7 @@ export type TranslationUnit = z.infer<typeof TranslationUnitSchema>;
 export type ConversationUnit = z.infer<typeof ConversationUnitSchema>;
 export type FlashcardUnit = z.infer<typeof FlashcardUnitSchema>;
 export type WritingPracticeUnit = z.infer<typeof WritingPracticeUnitSchema>;
+export type WordOrderUnit = z.infer<typeof WordOrderUnitSchema>;
 export type LessonPlanUnit = z.infer<typeof LessonPlanUnitSchema>;
 
 export type CLGOutput = z.infer<typeof CLGOutputSchema>;
@@ -244,5 +266,6 @@ export type CompiledFlashcardUnit = z.infer<typeof CompiledFlashcardUnitSchema>;
 export type CompiledWritingPracticeUnit = z.infer<
   typeof CompiledWritingPracticeUnitSchema
 >;
+export type CompiledWordOrderUnit = z.infer<typeof CompiledWordOrderUnitSchema>;
 export type CompiledUnit = z.infer<typeof CompiledUnitSchema>;
 export type CompiledLesson = z.infer<typeof CompiledLessonSchema>;
