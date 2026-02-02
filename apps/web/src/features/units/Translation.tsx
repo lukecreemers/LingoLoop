@@ -1,10 +1,10 @@
 import { useState, useMemo } from "react";
-import type { TGOutput, TMOutput, TranslationUnit } from "@shared";
+import type { TGOutput, TMOutput, LessonPlanUnit } from "@shared";
 import ProgressBar from "../../components/ui/ProgressBar";
 
 interface TranslationProps {
   data: TGOutput;
-  plan: TranslationUnit;
+  plan: LessonPlanUnit;
   onComplete: () => void;
 }
 

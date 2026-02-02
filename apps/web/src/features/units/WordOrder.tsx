@@ -1,10 +1,10 @@
 import { useState, useMemo, useCallback, useEffect } from "react";
-import type { WOOutput, WordOrderUnit } from "@shared";
+import type { WOOutput, LessonPlanUnit } from "@shared";
 import { RedoButton } from "../../components/ui/RedoButton";
 
 interface WordOrderProps {
   data: WOOutput;
-  plan: WordOrderUnit;
+  plan: LessonPlanUnit;
   onComplete: () => void;
 }
 

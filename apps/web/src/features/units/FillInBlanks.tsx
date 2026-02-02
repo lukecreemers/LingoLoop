@@ -1,7 +1,7 @@
 import { useState, useMemo, useCallback, useEffect } from "react";
 import { DndProvider } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
-import type { FIBOutput, FillInBlanksUnit } from "@shared";
+import type { FIBOutput, LessonPlanUnit } from "@shared";
 import WordChip from "../../components/ui/WordChip";
 import SentenceWithBlanks from "../../components/ui/SentenceWithBlanks";
 import { ExplainWrongButton } from "../../components/ui/ExplainWrong";
@@ -11,7 +11,7 @@ type SlotStatus = "empty" | "filled" | "correct" | "incorrect";
 
 interface FillInBlanksProps {
   data: FIBOutput;
-  plan: FillInBlanksUnit;
+  plan: LessonPlanUnit;
   onComplete: () => void;
 }
 

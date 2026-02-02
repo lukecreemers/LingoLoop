@@ -1,10 +1,10 @@
 import { useState, useMemo, useCallback } from "react";
-import type { FCOutput, FlashcardUnit } from "@shared";
+import type { FCOutput, LessonPlanUnit } from "@shared";
 import { RedoButton } from "../../components/ui/RedoButton";
 
 interface FlashcardProps {
   data: FCOutput;
-  plan: FlashcardUnit;
+  plan: LessonPlanUnit;
   onComplete: () => void;
 }
 

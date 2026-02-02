@@ -1,5 +1,5 @@
 import { useState, useMemo, useRef } from "react";
-import type { WPOutput, WritingPracticeUnit, WPMarkingOutput } from "@shared";
+import type { WPOutput, LessonPlanUnit, WPMarkingOutput } from "@shared";
 import { RedoButton } from "../../components/ui/RedoButton";
 import { SelectableText } from "../../components/ui/SelectableText";
 import { DEMO_KNOWN_VOCAB } from "../../constants/vocab";
@@ -60,7 +60,7 @@ function ErrorWord({
 
 interface WritingPracticeProps {
   data: WPOutput;
-  plan: WritingPracticeUnit;
+  plan: LessonPlanUnit;
   onComplete: () => void;
 }
 

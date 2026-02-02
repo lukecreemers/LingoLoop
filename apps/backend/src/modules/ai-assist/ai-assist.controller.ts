@@ -1,4 +1,5 @@
-import { Controller, Post, Body } from '@nestjs/common';
+import { Controller, Post, Body, Res } from '@nestjs/common';
+import * as express from 'express';
 import { AiAssistService } from './ai-assist.service';
 import { ZodResponse } from '../../common/decorators/zod-response.decorator';
 import {
@@ -13,6 +14,10 @@ import { ExplainWrongDto, TranslateSelectionDto } from '../../shared/types/ai-as
 import { WPMarkingOutputSchema } from '../../shared/types/writing-practice.types';
 import type { WPMarkingOutput } from '../../shared/types/writing-practice.types';
 import { MarkWritingPracticeDto } from '../../shared/types/writing-practice.dto';
+import {
+  ExplanationChatInputSchema,
+  type ExplanationChatInput,
+} from '../../shared/types/explanation-chat.dto';
 
 @Controller('ai-assist')
 export class AiAssistController {
@@ -40,6 +45,47 @@ export class AiAssistController {
     @Body() input: MarkWritingPracticeDto,
   ): Promise<WPMarkingOutput> {
     return this.aiAssistService.markWritingPractice(input);
+  }
+
+  /**
+   * Stream a chat response for explanation follow-up questions
+   * Uses Server-Sent Events (SSE) for streaming
+   */
+  @Post('explanation-chat')
+  async streamExplanationChat(
+    @Body() body: Record<string, unknown>,
+    @Res() res: express.Response,
+  ): Promise<void> {
+    // Parse and validate input with Zod
+    const parseResult = ExplanationChatInputSchema.safeParse(body);
+    if (!parseResult.success) {
+      res.status(400).json({ error: parseResult.error.message });
+      return;
+    }
+    const input: ExplanationChatInput = parseResult.data;
+
+    // Set headers for SSE
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+    res.flushHeaders();
+
+    try {
+      for await (const chunk of this.aiAssistService.streamExplanationChat(
+        input,
+      )) {
+        // Send each chunk as an SSE data event
+        res.write(`data: ${JSON.stringify({ content: chunk })}\n\n`);
+      }
+      // Send done event
+      res.write(`data: ${JSON.stringify({ done: true })}\n\n`);
+    } catch (error) {
+      res.write(
+        `data: ${JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error' })}\n\n`,
+      );
+    } finally {
+      res.end();
+    }
   }
 }
 

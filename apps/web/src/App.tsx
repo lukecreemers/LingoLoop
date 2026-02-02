@@ -25,13 +25,12 @@ const demoLessonData: SectionedLesson = {
         {
           type: "conversation",
           instructions:
-            "Create a conversation about two people meeting and introducing themselves.",
-          conversationLength: "medium",
+            "Create a conversation about two people meeting and introducing themselves. conversationLength: medium",
         },
         {
           type: "flashcard",
-          instructions: "Basic greeting vocabulary for introductions",
-          cardCount: 6,
+          instructions:
+            "Basic greeting vocabulary for introductions. cardCount: 6",
         },
         {
           type: "explanation",
@@ -40,64 +39,63 @@ const demoLessonData: SectionedLesson = {
         },
       ],
       units: [
-        {
-          type: "conversation",
-          plan: {
-            type: "conversation",
-            instructions:
-              "Create a conversation about two people meeting and introducing themselves.",
-            conversationLength: "medium",
-          },
-          output: {
-            characters: [
-              { name: "María", age: "adult", gender: "female" },
-              { name: "Juan", age: "adult", gender: "male" },
-            ],
-            conversation: `**María:** ¡Hola! Me llamo María. ¿Cómo te llamas?
-**Juan:** Hola, María. Me llamo Juan. Mucho gusto.
-**María:** Mucho gusto, Juan. Soy de México. ¿De dónde eres tú?
-**Juan:** Soy de España, de Barcelona. ¿Vives aquí en la ciudad?
-**María:** Sí, vivo aquí desde hace tres años. Trabajo en una empresa de tecnología.
-**Juan:** ¡Qué interesante! Yo soy profesor de español en la universidad.`,
-          },
-        },
-        {
-          type: "flashcard",
-          plan: {
-            type: "flashcard",
-            instructions: "Basic greeting vocabulary for introductions",
-            cardCount: 6,
-          },
-          output: {
-            theme: "Greetings & Introductions",
-            cards: [
-              {
-                term: "Hola",
-                definition: "Hello / Hi",
-                example: "¡Hola! ¿Cómo estás?",
-                exampleTranslation: "Hello! How are you?",
-              },
-              {
-                term: "Me llamo",
-                definition: "My name is (lit. I call myself)",
-                example: "Me llamo María.",
-                exampleTranslation: "My name is María.",
-              },
-              {
-                term: "Mucho gusto",
-                definition: "Nice to meet you (lit. Much pleasure)",
-                example: "Mucho gusto, Juan.",
-                exampleTranslation: "Nice to meet you, Juan.",
-              },
-              {
-                term: "¿Cómo te llamas?",
-                definition: "What's your name? (informal)",
-                example: "¡Hola! ¿Cómo te llamas?",
-                exampleTranslation: "Hello! What's your name?",
-              },
-            ],
-          },
-        },
+        //         {
+        //           type: "conversation",
+        //           plan: {
+        //             type: "conversation",
+        //             instructions:
+        //               "Create a conversation about two people meeting and introducing themselves. conversationLength: medium",
+        //           },
+        //           output: {
+        //             characters: [
+        //               { name: "María", age: "adult", gender: "female" },
+        //               { name: "Juan", age: "adult", gender: "male" },
+        //             ],
+        //             conversation: `**María:** ¡Hola! Me llamo María. ¿Cómo te llamas?
+        // **Juan:** Hola, María. Me llamo Juan. Mucho gusto.
+        // **María:** Mucho gusto, Juan. Soy de México. ¿De dónde eres tú?
+        // **Juan:** Soy de España, de Barcelona. ¿Vives aquí en la ciudad?
+        // **María:** Sí, vivo aquí desde hace tres años. Trabajo en una empresa de tecnología.
+        // **Juan:** ¡Qué interesante! Yo soy profesor de español en la universidad.`,
+        //           },
+        //         },
+        //         {
+        //           type: "flashcard",
+        //           plan: {
+        //             type: "flashcard",
+        //             instructions:
+        //               "Basic greeting vocabulary for introductions. cardCount: 6",
+        //           },
+        //           output: {
+        //             theme: "Greetings & Introductions",
+        //             cards: [
+        //               {
+        //                 term: "Hola",
+        //                 definition: "Hello / Hi",
+        //                 example: "¡Hola! ¿Cómo estás?",
+        //                 exampleTranslation: "Hello! How are you?",
+        //               },
+        //               {
+        //                 term: "Me llamo",
+        //                 definition: "My name is (lit. I call myself)",
+        //                 example: "Me llamo María.",
+        //                 exampleTranslation: "My name is María.",
+        //               },
+        //               {
+        //                 term: "Mucho gusto",
+        //                 definition: "Nice to meet you (lit. Much pleasure)",
+        //                 example: "Mucho gusto, Juan.",
+        //                 exampleTranslation: "Nice to meet you, Juan.",
+        //               },
+        //               {
+        //                 term: "¿Cómo te llamas?",
+        //                 definition: "What's your name? (informal)",
+        //                 example: "¡Hola! ¿Cómo te llamas?",
+        //                 exampleTranslation: "Hello! What's your name?",
+        //               },
+        //             ],
+        //           },
+        //         },
         {
           type: "explanation",
           plan: {
@@ -290,7 +288,12 @@ Now let's practice these phrases!`,
               {
                 prompt: "¿Qué haces por la mañana normalmente?",
                 promptTranslation: "What do you normally do in the morning?",
-                hints: ["despertarse", "desayunar", "ducharse", "ir al trabajo"],
+                hints: [
+                  "despertarse",
+                  "desayunar",
+                  "ducharse",
+                  "ir al trabajo",
+                ],
                 expectedLength: "medium",
               },
             ],

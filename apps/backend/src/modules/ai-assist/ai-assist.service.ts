@@ -1,6 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import { ChatAnthropic } from '@langchain/anthropic';
 import {
+  HumanMessage,
+  AIMessage,
+  SystemMessage,
+} from '@langchain/core/messages';
+import {
   ExplainWrongInput,
   ExplainWrongOutput,
   ExplainWrongOutputSchema,
@@ -14,6 +19,7 @@ import {
   WPMarkingOutputSchema,
 } from '../../shared/types/writing-practice.types';
 import { WP_MARKING_PROMPT_TEMPLATE } from '../../testing/cases/writing-practice-marking.cases';
+import type { ExplanationChatInput } from '../../shared/types/explanation-chat.dto';
 
 const EXPLAIN_WRONG_PROMPT = `
 You are a friendly language tutor helping a student understand their mistake.
@@ -66,6 +72,28 @@ You are a language learning assistant providing translations.
 - For breakdowns, highlight any interesting grammar points briefly
 `.trim();
 
+const EXPLANATION_CHAT_SYSTEM = `
+You are a friendly, knowledgeable language tutor helping a student understand a concept they just learned.
+You have access to the original explanation they read, and they're asking follow-up questions.
+
+### YOUR APPROACH
+- Be conversational and encouraging
+- Give clear, concise answers (don't over-explain)
+- Use examples in {{targetLanguage}} when helpful
+- If they ask something unrelated to the topic, try and answer it in a way that is helpful and relevant to the topic. But always allow the user to stare the conversation where they want.
+
+- Use markdown formatting for clarity (bold key terms, code blocks for examples)
+
+### THE EXPLANATION THEY READ
+{{explanationContext}}
+
+### LANGUAGE CONTEXT
+- They are learning: {{targetLanguage}}
+- Their native language: {{nativeLanguage}}
+
+Answer their question helpfully. Keep responses focused and not too long.
+`.trim();
+
 @Injectable()
 export class AiAssistService {
   private llm: ChatAnthropic;
@@ -85,7 +113,9 @@ export class AiAssistService {
       .replace('{{correctAnswer}}', input.correctAnswer)
       .replace('{{targetLanguage}}', input.targetLanguage);
 
-    const structuredLlm = this.llm.withStructuredOutput(ExplainWrongOutputSchema);
+    const structuredLlm = this.llm.withStructuredOutput(
+      ExplainWrongOutputSchema,
+    );
     return structuredLlm.invoke(prompt);
   }
 
@@ -115,5 +145,39 @@ export class AiAssistService {
     const structuredLlm = this.llm.withStructuredOutput(WPMarkingOutputSchema);
     return structuredLlm.invoke(prompt);
   }
-}
 
+  /**
+   * Stream a chat response for explanation follow-up questions
+   */
+  async *streamExplanationChat(
+    input: ExplanationChatInput,
+  ): AsyncGenerator<string> {
+    const systemPrompt = EXPLANATION_CHAT_SYSTEM.replace(
+      /\{\{targetLanguage\}\}/g,
+      input.targetLanguage,
+    )
+      .replace('{{nativeLanguage}}', input.nativeLanguage)
+      .replace('{{explanationContext}}', input.explanationContext);
+
+    // Build message history
+    const messages = [
+      new SystemMessage(systemPrompt),
+      ...input.chatHistory.map((msg) =>
+        msg.role === 'user'
+          ? new HumanMessage(msg.content)
+          : new AIMessage(msg.content),
+      ),
+      new HumanMessage(input.userQuestion),
+    ];
+
+    // Stream the response
+    const stream = await this.llm.stream(messages);
+
+    for await (const chunk of stream) {
+      const content = chunk.content;
+      if (typeof content === 'string' && content.length > 0) {
+        yield content;
+      }
+    }
+  }
+}

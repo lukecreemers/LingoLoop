@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect, useCallback, useRef } from "react";
-import type { CGOutput, ConversationUnit } from "@shared";
+import type { CGOutput, LessonPlanUnit } from "@shared";
 import SelectableText from "../../components/ui/SelectableText";
 import { DEMO_KNOWN_VOCAB } from "../../constants/vocab";
 import { RedoButton } from "../../components/ui/RedoButton";
@@ -17,7 +17,7 @@ interface Message {
 
 interface ConversationProps {
   data: CGOutput;
-  plan: ConversationUnit;
+  plan: LessonPlanUnit;
   onComplete: () => void;
 }
 

@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from "react";
-import type { WIBOutput, WriteInBlanksUnit } from "@shared";
+import type { WIBOutput, LessonPlanUnit } from "@shared";
 import SentenceWithInputs from "../../components/ui/SentenceWithInputs";
 import { ExplainWrongButton } from "../../components/ui/ExplainWrong";
 import { RedoButton } from "../../components/ui/RedoButton";
@@ -8,7 +8,7 @@ type SlotStatus = "empty" | "filled" | "correct" | "incorrect";
 
 interface WriteInBlanksProps {
   data: WIBOutput;
-  plan: WriteInBlanksUnit;
+  plan: LessonPlanUnit;
   onComplete: () => void;
 }
 

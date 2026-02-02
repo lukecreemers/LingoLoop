@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect, useCallback } from "react";
-import type { WMMOutput, WordMatchUnit } from "@shared";
+import type { WMMOutput, LessonPlanUnit } from "@shared";
 import { ExplainWrongButton } from "../../components/ui/ExplainWrong";
 import { RedoButton } from "../../components/ui/RedoButton";
 
@@ -12,7 +12,7 @@ interface Match {
 
 interface WordMeaningMatchProps {
   data: WMMOutput;
-  plan: WordMatchUnit;
+  plan: LessonPlanUnit;
   onComplete: () => void;
 }
 
