@@ -177,7 +177,10 @@ function renderMarkdown(text: string): React.ReactNode[] {
             </div>
             <div className="space-y-1 text-lg leading-relaxed">
               {codeContent.map((codeLine, idx) => (
-                <p key={idx} className="text-zinc-800">
+                <p
+                  key={idx}
+                  className="text-zinc-800"
+                >
                   {codeLine || "\u00A0"}
                 </p>
               ))}

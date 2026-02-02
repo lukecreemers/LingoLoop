@@ -81,7 +81,6 @@ You have access to the original explanation they read, and they're asking follow
 - Give clear, concise answers (don't over-explain)
 - Use examples in {{targetLanguage}} when helpful
 - If they ask something unrelated to the topic, try and answer it in a way that is helpful and relevant to the topic. But always allow the user to stare the conversation where they want.
-
 - Use markdown formatting for clarity (bold key terms, code blocks for examples)
 
 ### THE EXPLANATION THEY READ
