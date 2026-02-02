@@ -188,7 +188,7 @@ export default function WriteInBlanks({
                     </p>
                     <ExplainWrongButton
                       input={{
-                        unitType: "write in the blanks",
+                        unitType: "write_in_blanks",
                         context: currentExercise.template,
                         userAnswer: filledAnswers
                           .filter((_, i) => slotStatuses[i] === "incorrect")

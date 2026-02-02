@@ -2,39 +2,7 @@ import type { PromptTestConfig, ModelConfig, TestCase } from '../prompt-tester';
 import { FCOutputSchema } from '../../shared/types/flashcard.types';
 
 // ============================================================================
-// FLASHCARD GENERATION PROMPT
-// ============================================================================
-
-export const FC_PROMPT_TEMPLATE = `You are an expert language teacher creating flashcards for vocabulary learning.
-
-## Context
-- User Level: {{userLevel}}
-- Target Language: {{targetLanguage}}
-- Native Language: {{nativeLanguage}}
-- Known Vocabulary: {{userWordList}}
-
-## Instructions
-{{instructions}}
-
-## Requirements
-1. Create {{cardCount}} flashcard items based on the instructions
-2. Each card should have:
-   - A term in {{targetLanguage}}
-   - A clear, concise definition in {{nativeLanguage}}
-   - Optionally, a simple example sentence using the term
-   - If example is provided, include its translation
-3. Ensure terms are appropriate for the user's level
-4. Avoid words already in their known vocabulary list
-5. Group related terms around the theme specified in instructions
-6. Order cards from simpler/more common to more complex/less common
-
-## Output Format
-Provide a JSON object with:
-- cards: Array of flashcard items
-- theme: A brief description of the vocabulary theme`;
-
-// ============================================================================
-// INPUT INTERFACE
+// INPUT TYPE - Simplified to just instructions + context
 // ============================================================================
 
 export interface FCInputs extends Record<string, string | number | string[]> {
@@ -42,9 +10,35 @@ export interface FCInputs extends Record<string, string | number | string[]> {
   targetLanguage: string;
   nativeLanguage: string;
   instructions: string;
-  cardCount: string;
-  userWordList: string;
 }
+
+// ============================================================================
+// PROMPT TEMPLATE - All details come from instructions
+// ============================================================================
+
+export const FC_PROMPT_TEMPLATE = `
+### TASK
+Create vocabulary flashcards for a {{userLevel}} {{targetLanguage}} learner (native {{nativeLanguage}}).
+
+### INSTRUCTIONS (contains all specifications)
+{{instructions}}
+
+### LEVEL DEFAULTS (use if not specified in instructions)
+- **Beginner:** 4-5 cards, very common words, simple examples
+- **Intermediate:** 6-8 cards, moderate vocabulary, contextual examples
+- **Advanced:** 8-10 cards, nuanced vocabulary, idiomatic usage
+
+### CONSTRAINTS
+1. Each card has: term, definition, optional example sentence with translation
+2. Terms should be appropriate for the user's level
+3. Order cards from simpler/more common to more complex
+4. Examples should demonstrate natural usage
+
+### OUTPUT FORMAT
+Return JSON with:
+- theme: Brief description of the vocabulary theme
+- cards: Array of { term, definition, example?, exampleTranslation? }
+`.trim();
 
 // ============================================================================
 // TEST CASES
@@ -52,38 +46,33 @@ export interface FCInputs extends Record<string, string | number | string[]> {
 
 export const FC_TEST_CASES: TestCase<FCInputs>[] = [
   {
-    name: 'basic_greetings',
+    name: 'Beginner - Greetings',
     inputs: {
       userLevel: 'beginner',
       targetLanguage: 'Spanish',
       nativeLanguage: 'English',
-      instructions: 'Create flashcards for basic greetings and introductions',
-      cardCount: '6',
-      userWordList: 'hola, adiós',
+      instructions:
+        'Create 5 flashcards for basic greetings and introductions (hola, adiós, buenos días, etc). Include example sentences for each.',
     },
   },
   {
-    name: 'food_vocabulary',
+    name: 'Intermediate - Food',
     inputs: {
       userLevel: 'intermediate',
       targetLanguage: 'Spanish',
       nativeLanguage: 'English',
       instructions:
-        'Create flashcards for common food and restaurant vocabulary',
-      cardCount: '8',
-      userWordList: 'comida, agua, pan',
+        'Create 7 flashcards for restaurant vocabulary (ordering, describing food, asking for the check). Include natural example sentences.',
     },
   },
   {
-    name: 'time_expressions',
+    name: 'Advanced - Idioms',
     inputs: {
-      userLevel: 'beginner',
+      userLevel: 'advanced',
       targetLanguage: 'Spanish',
       nativeLanguage: 'English',
       instructions:
-        'Create flashcards for telling time and time-related expressions',
-      cardCount: '5',
-      userWordList: '',
+        'Create 8 flashcards for common Spanish idioms related to work and productivity. Explain the literal vs figurative meaning.',
     },
   },
 ];

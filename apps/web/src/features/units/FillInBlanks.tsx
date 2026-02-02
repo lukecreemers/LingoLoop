@@ -207,7 +207,7 @@ export default function FillInBlanks({
                       </p>
                       <ExplainWrongButton
                         input={{
-                          unitType: "fill in the blanks",
+                          unitType: "fill_in_blanks",
                           context: currentExercise.template,
                           userAnswer: filledAnswers.filter(Boolean).join(", "),
                           correctAnswer: currentExercise.answers.join(", "),

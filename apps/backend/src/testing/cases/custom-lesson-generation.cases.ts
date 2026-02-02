@@ -18,66 +18,34 @@ export interface CLGInputs extends Record<string, string | number | string[]> {
 // ============================================================================
 
 const UNIT_EXPLANATIONS = `
-### AVAILABLE UNIT TYPES AND SUB-AGENT REQUIREMENTS
+### AVAILABLE UNIT TYPES (use these EXACT type names)
 
-**1. flashcard (FC Agent)**
-Generates vocabulary flashcards for introducing and memorizing new words or phrases.
-- instructions: The vocabulary theme or specific words/phrases to teach (e.g., "Basic greetings", "Food vocabulary", "Numbers 1-20").
-- cardCount: Number of cards (typically 5-10 for beginners, up to 15 for advanced).
-*Critical Goal: VOCABULARY INTRODUCTION. Use this early in lessons to introduce new words BEFORE exercises that use them. Cards include term, definition, and optional example sentences. This is purely for learning/memorization, not testing.*
+**flashcard** - Vocabulary flashcards for introducing words/phrases.
+Include in instructions: theme, card count (5-10 beginner, up to 15 advanced)
 
-**2. explanation (EX Agent)**
-Generates a clear, pedagogical explanation in English about a specific linguistic concept.
-- instructions: The topic or concept to explain (e.g., "The difference between Por and Para", "When to use the subjunctive in relative clauses").
-*Critical Goal: Level-appropriate clarity. Beginners get simple language with 2-3 examples; Advanced gets nuance, regional variations, and linguistic comparisons. Use this BEFORE drilling exercises to set context.*
+**explanation** - Clear explanation of ONE linguistic concept.
+Include in instructions: the specific topic/rule to explain
 
-**3. fill in the blanks (FIB Agent)**
-A deterministic grammar/vocabulary test with multiple-choice options.
-- instructions: A STRICT grammar focus (e.g., "Preterite of irregular verbs" or "Direct object pronouns").
-- blankAmount: Number of [ * ] blanks per sentence. 
-- distractorInstructions: Logic for "near-miss" distractors (e.g., "use same verb in different person" or "use synonyms that don't fit the gender").
-- distractorCount: Typically 2-4 distractors per blank.
-*Critical Goal: Zero Ambiguity. Sentences must be written so that only the correct answer is logically possible.*
+**fill_in_blanks** - Multiple-choice grammar/vocab test.
+Include in instructions: grammar focus, blank count, distractor type, distractor count
 
-**4. word meaning match (WMM Agent)**
-A matching exercise for vocabulary or grammatical associations.
-- matchType: The relationship (e.g., "Infinitive → English", "Noun → Correct Article", "Opposites").
-- theme: Thematic grouping (e.g., "Kitchen vocabulary", "Emotions").
-- pairCount: Number of correct matches (5-10).
-- distractorCount: "Near-miss" items that fit the theme but have no match (2-4).
-*Critical Goal: Column items must be balanced in complexity to prevent guessing by length.*
+**word_match** - Matching exercise for vocab/grammar associations.
+Include in instructions: match type, theme, pair count (5-10), distractor count (2-4)
 
-**5. write in the blanks (WIB Agent)**
-High-stakes production where the user types the answer based on a clue.
-- instructions: The specific word/grammar target (e.g., "Reflexive verbs in present tense").
-- blankAmount: Number of [ * ] blanks.
-*Critical Goal: Clue Integration. Every blank must have a root word/clue (e.g., an infinitive) provided in the instructions so the user knows what to transform.*
+**write_in_blanks** - User types answer based on a clue (no choices).
+Include in instructions: grammar target, blank count, clue format
 
-**6. translation (TG Agent)**
-Generates a unified paragraph (not disconnected sentences) for the user to translate.
-- instructions: A coherent theme or topic for the paragraph.
-- sentenceCount: Typically 1-2 sentences but longer if requested.
-- startingLanguage: The language the user reads.
-- languageToTranslateTo: The language the user must type in.
-*Critical Goal: The paragraph must read like native speech and maintain a unified thematic thread.*
+**translation** - Translate a coherent paragraph.
+Include in instructions: theme, sentence count, starting language, target language
 
-**7. conversation (CG Agent)**
-Generates a script between two distinct characters. 
-- instructions: A specific situation or conflict (e.g., "Arguing over a late train").
-- conversationLength: "short" (4-6 turns), "medium" (8-12 turns), or "long" (14-20 turns).
-*Critical Goal: The agent will create names, ages, and genders for characters. Instructions should hint at the dynamic between them.*
+**conversation** - Dialogue between characters.
+Include in instructions: situation, length (short/medium/long)
 
-**8. writing practice (WP Agent)**
-Open-ended writing exercise where the user responds to prompts in the target language, then receives AI-powered feedback.
-- instructions: The topic or theme for writing prompts (e.g., "Daily routines", "Opinion on technology", "Describe a memorable experience").
-- promptCount: Number of writing prompts to generate (typically 2-4).
-*Critical Goal: FREE-FORM PRODUCTION. This is the highest level of language production - users write complete responses that get marked for grammar, vocabulary, and communication. Use at the END of a lesson to consolidate learning. For beginners, keep prompts simple (describe, list). For advanced, include opinion and hypothetical prompts.*
+**writing_practice** - Open-ended writing with AI feedback.
+Include in instructions: topic/theme, prompt count (2-4)
 
-**9. word order (WO Agent)**
-Generates sentences that the user must unscramble by dragging words into the correct order.
-- instructions: The theme or grammar focus for the sentences (e.g., "Questions with interrogatives", "Sentences with reflexive verbs", "Adjective placement").
-- sentenceCount: Number of sentences to generate (typically 5-8).
-*Critical Goal: SYNTACTIC AWARENESS. Tests the user's understanding of word order rules in the target language. Great for drilling sentence structure patterns. The frontend scrambles the words and the user drags them into order. Keep sentences appropriate to level - beginners get 4-7 words, advanced can have 10+ with complex clauses.*
+**word_order** - Unscramble words into correct order.
+Include in instructions: theme/grammar focus, sentence count (5-8)
 `.trim();
 
 // ============================================================================
@@ -95,21 +63,22 @@ You are a Senior Pedagogical Director specializing in Micro-Learning. Your task 
 ### PEDAGOGICAL STRATEGY (The "Micro-Loop")
 If the concept is complex relative to the users level, do NOT explain everything at once. Instead, break the {{instructions}} into 2-3 granular sub-concepts. For each sub-concept, generate a "Loop":
 
-1.  **ATOMIC EXPLANATION:** An 'explanation' unit limited to ONE specific rule or use case. (e.g., "Ser for Professions" only).
-2.  **VOCABULARY PRIMING (Optional):** If new vocabulary is being taught, start with a 'flashcard' unit to introduce the key words. This is especially important for beginners or when introducing a new topic with unfamiliar terms.
-3.  **TARGETED DRILL:** atleast 2 low-stakes units (FIB or WMM) that test ONLY the rule just explained.
-4.  **PRODUCTION:** Either a WIB or TG unit that forces the user to use the rule in context.
+1.  **ATOMIC EXPLANATION:** An 'explanation' unit limited to ONE specific rule or use case. (e.g., "Ser for Professions" only) typically start with this.
+2.  **VOCABULARY PRIMING (Optional):** If new vocabulary is being taught, after the explantion have a 'flashcard' unit to introduce the key words. This is especially important for beginners or when introducing a new topic with unfamiliar terms.
+3.  **TARGETED DRILL:** atleast 2 low-stakes units (combination of FIB, WMM or WIB) that test ONLY the rule just explained.
+4.  **PRODUCTION:** Either a very relevant writing_practice answering a prompt or translation unit that forces the user to use the rule in context.
+
 
 At the end of all loops do an **INTEGRATION (The Bridge):** After 2-3 loops, provide atleast 2 "Production" units (WIB, TG, or CG) that forces the user to use all sub-concepts together in context.
 
 ### ATOMIC BREAKDOWN RULES
 - **Concept Isolation:** Never introduce two different grammar rules in the same 'explanation' unit.
-- **Immediate Validation:** Every 'explanation' MUST be immediately followed by a 'fill in the blanks' or 'word meaning match' with very explicit instructions on what to focus on.
+- **Immediate Validation:** Every 'explanation' MUST be immediately followed by a 'fill_in_blanks' or 'word_match' with very explicit instructions on what to focus on.
 - **Complexity Cap:** For beginner students, ensure the vocabulary in early loops is extremely simple so they can focus 100% on the grammar mechanic.
 
 ### LEVEL-SPECIFIC CONSTRAINTS
-- **Beginner:** Focus on 2 loops max. Conversation MUST be "short". For production units, avoid TG and CG and priotise just exremely short and targeted WIB units (only 1 blank).
-- **Intermediate:** Focus on 2-3 loops. Mixed production is key, keep.
+- **Beginner:** Focus on 2 loops max. Conversation MUST be "short". For production units, avoid translation and conversation and priotise just exremely short and targeted write_in_blanks units and writing_practice units (only 1 blank).
+- **Intermediate:** Focus on 2-3 loops. Mixed production is key, include higher amounts of writing_practice units and translation units.
 - **Advanced:** 6-8 units. Loops should cover subtle nuances or regionalisms.
 
 ### LESSON REQUEST

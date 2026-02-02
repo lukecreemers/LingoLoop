@@ -1,14 +1,14 @@
 import { useState } from "react";
-import { useLessonStore } from "../../stores/useLessonStore";
-import type { CompiledLesson } from "@shared";
+import { useSectionedLessonStore } from "../../stores/useSectionedLessonStore";
+import type { SectionedLesson } from "@shared";
 
 interface LessonCreatorProps {
   onLessonCreated: () => void;
 }
 
 export default function LessonCreator({ onLessonCreated }: LessonCreatorProps) {
-  const setLesson = useLessonStore((s) => s.setLesson);
-  const setStatus = useLessonStore((s) => s.setStatus);
+  const setLesson = useSectionedLessonStore((s) => s.setLesson);
+  const setStatus = useSectionedLessonStore((s) => s.setStatus);
 
   const [formData, setFormData] = useState({
     userLevel: "beginner",
@@ -27,7 +27,8 @@ export default function LessonCreator({ onLessonCreated }: LessonCreatorProps) {
     setStatus("generating");
 
     try {
-      const response = await fetch("/api/lessons/create-custom", {
+      const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:3000";
+      const response = await fetch(`${apiUrl}/lessons/create-sectioned`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -40,7 +41,7 @@ export default function LessonCreator({ onLessonCreated }: LessonCreatorProps) {
       }
 
       const result = await response.json();
-      const lessonData = result.data as CompiledLesson;
+      const lessonData = result.data as SectionedLesson;
 
       setLesson(lessonData);
       onLessonCreated();

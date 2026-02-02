@@ -1,5 +1,8 @@
 import { useState, useCallback } from "react";
-import { useLessonStore, useCurrentUnit } from "../stores/useLessonStore";
+import {
+  useSectionedLessonStore,
+  useCurrentUnit,
+} from "../stores/useSectionedLessonStore";
 import type { CompiledUnit, LessonPlanUnit } from "@shared";
 
 interface RedoUnitInput {
@@ -17,8 +20,9 @@ export function useRedoUnit() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const updateCurrentUnit = useLessonStore((s) => s.updateCurrentUnit);
-  const setIsRedoing = useLessonStore((s) => s.setIsRedoing);
+  const updateCurrentUnit = useSectionedLessonStore((s) => s.updateCurrentUnit);
+  const setIsRedoing = useSectionedLessonStore((s) => s.setIsRedoing);
+  const lessonData = useSectionedLessonStore((s) => s.lessonData);
   const currentUnit = useCurrentUnit();
 
   const redoUnit = useCallback(
@@ -33,15 +37,16 @@ export function useRedoUnit() {
       setError(null);
 
       try {
+        const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:3000";
         const input: RedoUnitInput = {
           unitPlan,
           previousOutput: currentUnit,
-          userLevel: "intermediate", // TODO: Get from user context
-          targetLanguage: "Spanish",
-          nativeLanguage: "English",
+          userLevel: lessonData?.input.userLevel ?? "intermediate",
+          targetLanguage: lessonData?.input.targetLanguage ?? "Spanish",
+          nativeLanguage: lessonData?.input.nativeLanguage ?? "English",
         };
 
-        const response = await fetch("/api/lessons/redo-unit", {
+        const response = await fetch(`${apiUrl}/lessons/redo-unit`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(input),
@@ -68,7 +73,7 @@ export function useRedoUnit() {
         setIsRedoing(false);
       }
     },
-    [currentUnit, updateCurrentUnit, setIsRedoing]
+    [currentUnit, updateCurrentUnit, setIsRedoing, lessonData]
   );
 
   return { redoUnit, isLoading, error };

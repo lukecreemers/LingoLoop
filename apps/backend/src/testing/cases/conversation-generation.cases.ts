@@ -3,46 +3,42 @@ import type { PromptTestConfig, TestCase } from '../prompt-tester';
 import { ModelConfig } from '../test.types';
 
 // ============================================================================
-// INPUT TYPE
+// INPUT TYPE - Simplified to just instructions + context
 // ============================================================================
 
 export interface CGInputs extends Record<string, string | number | string[]> {
   userLevel: string;
-  instructions: string;
-  conversationLength: string; // 'short' | 'medium' | 'long'
-  userWordList: string[];
-  userGrammarList: string[];
   targetLanguage: string;
+  instructions: string;
 }
 
 // ============================================================================
-// PROMPT TEMPLATE
+// PROMPT TEMPLATE - All details come from instructions
 // ============================================================================
 
 export const CG_PROMPT_TEMPLATE = `
 ### TASK
-Generate a {{conversationLength}} conversation in {{targetLanguage}} for a {{userLevel}} student.
-Create 2 relevant characters for the conversation and specify their names, age, and gender.
+Generate a conversation in {{targetLanguage}} for a {{userLevel}} student.
+Create 2 relevant characters with names, ages, and genders.
 
-### CONTEXT & TOPIC
+### INSTRUCTIONS (contains all specifications)
 {{instructions}}
 
-### LENGTH GUIDE
-- **short:** 4-6 turns of dialogue
-- **medium:** 8-12 turns of dialogue
-- **long:** 14-20 turns of dialogue
-
-### VOCABULARY INTEGRATION (OPTIONAL)
-If any of these words fit naturally into the conversation, include them: [{{userWordList}}]
-Do NOT force them. Natural dialogue flow is the absolute priority.
-
-### GRAMMAR REINFORCEMENT
-The student is practicing these grammar points. Weave them in if they fit naturally: [{{userGrammarList}}]. If they conflict with the conversational tone, ignore them.
+### LEVEL DEFAULTS (use if not specified in instructions)
+- **Beginner:** Short (4-6 turns), simple vocabulary, present tense
+- **Intermediate:** Medium (8-10 turns), mixed tenses, natural expressions
+- **Advanced:** Long (12+ turns), complex structures, nuanced dialogue
 
 ### CONSTRAINTS (CRITICAL)
-1. **Level-Appropriate:** Use vocabulary and structures that match the {{userLevel}} level.
-2. **Natural & Authentic:** Write exactly how native speakers would actually talk. Avoid "textbook" dialogue.
+1. **Level-Appropriate:** Vocabulary and structures must match {{userLevel}}.
+2. **Natural & Authentic:** Write exactly how native speakers actually talk. No "textbook" dialogue.
 3. **Distinct Voices:** Each character should have a slightly different speech pattern.
+4. **Engaging Context:** The situation should be interesting and realistic.
+
+### OUTPUT FORMAT
+Return JSON with:
+- characters: Array of { name, age, gender } for each character
+- conversation: Full dialogue with format "**Name:** dialogue text" on each line
 `.trim();
 
 // ============================================================================
@@ -50,204 +46,34 @@ The student is practicing these grammar points. Weave them in if they fit natura
 // ============================================================================
 
 export const CG_TEST_CASES: TestCase<CGInputs>[] = [
-  // --------------------------------------------------------------------------
-  // NORMAL / TRANSACTIONAL
-  // --------------------------------------------------------------------------
   {
-    name: 'Beginner - The Coffee Shop Order',
-    description: 'A standard polite exchange in a cafe.',
+    name: 'Beginner - Cafe Order',
+    description: 'Simple transactional dialogue.',
     inputs: {
       userLevel: 'beginner',
       targetLanguage: 'Spanish',
-      conversationLength: 'short',
       instructions:
-        'A customer is ordering breakfast at a local cafe. The barista is asking about milk preferences and where they want to sit.',
-      userWordList: [
-        'mesa',
-        'silla',
-        'ventana',
-        'libro',
-        'verde',
-        'casa',
-        'amigo',
-        'mañana',
-        'noche',
-        'feliz',
-      ],
-      userGrammarList: [
-        'present tense regular verbs',
-        'question formation',
-        'definite articles',
-        'adjective agreement',
-      ],
+        'Create a short conversation (4-6 turns) at a coffee shop. A customer orders breakfast and the barista asks about preferences. Use present tense, basic questions.',
     },
   },
-
-  // --------------------------------------------------------------------------
-  // WEIRD / FUN - THE ACCIDENTAL TIME TRAVELER
-  // --------------------------------------------------------------------------
   {
-    name: 'Intermediate - The Victorian Time Traveler',
-    description:
-      'A person from 1890 arrives in a modern park and is confused by a smartphone.',
+    name: 'Intermediate - Lost Tourist',
+    description: 'Giving directions and advice.',
     inputs: {
       userLevel: 'intermediate',
       targetLanguage: 'Spanish',
-      conversationLength: 'medium',
       instructions:
-        'A person from the year 1890 suddenly appears in a park. They ask a modern jogger why they are carrying a "glowing black mirror" (a smartphone).',
-      userWordList: [
-        'lograr',
-        'aprovechar',
-        'extraño',
-        'rincón',
-        'queja',
-        'soportar',
-        'de repente',
-        'ayer',
-        'actual',
-        'desarrollar',
-      ],
-      userGrammarList: [
-        'preterite vs imperfect',
-        'direct object pronouns',
-        'mientras + imperfect',
-        'expressing surprise',
-      ],
+        'Create a medium conversation (8-10 turns) where a tourist asks a local for directions to a museum. Include past tense ("I got lost"), future plans, and polite expressions.',
     },
   },
-
-  // --------------------------------------------------------------------------
-  // NORMAL / SOCIAL
-  // --------------------------------------------------------------------------
   {
-    name: 'Intermediate - Finding the Museum',
-    description: 'A polite social interaction involving directions in Italy.',
-    inputs: {
-      userLevel: 'intermediate',
-      targetLanguage: 'Italian',
-      conversationLength: 'medium',
-      instructions:
-        'A tourist is lost in Rome and asks a local for directions to a hidden museum. The local gives advice on the best route to avoid crowds.',
-      userWordList: [
-        'angolo',
-        'lamentela',
-        'sviluppare',
-        'raggiungere',
-        'attuale',
-        'ieri',
-        'improvviso',
-        'riuscire',
-        'sopportare',
-        'strano',
-      ],
-      userGrammarList: [
-        'imperative mood',
-        'indirect object pronouns',
-        'passato prossimo',
-        'conditional for politeness',
-      ],
-    },
-  },
-
-  // --------------------------------------------------------------------------
-  // SUPER WEIRD - INTERVIEW WITH A PHILOSOPHICAL CAT
-  // --------------------------------------------------------------------------
-  {
-    name: 'Advanced - Interview with a Philosophical Cat',
-    description:
-      'A journalist interviews a cat that has gained the ability to speak and hates human logic.',
+    name: 'Advanced - Debate',
+    description: 'Complex opinions and arguments.',
     inputs: {
       userLevel: 'advanced',
       targetLanguage: 'Spanish',
-      conversationLength: 'long',
       instructions:
-        'A journalist is interviewing a house cat that suddenly started talking. The cat is very judgmental about human life choices and the concept of "work."',
-      userWordList: [
-        'hubiera',
-        'habría',
-        'si hubiera',
-        'arrepentirse',
-        'clavo',
-        'pelo',
-        'lengua',
-        'claro',
-        'tal vez',
-        'en cambio',
-      ],
-      userGrammarList: [
-        'si + imperfect subjunctive',
-        'formal register (Usted)',
-        'subjunctive for doubt/opinion',
-        'complex relative pronouns',
-      ],
-    },
-  },
-
-  // --------------------------------------------------------------------------
-  // NORMAL / PROFESSIONAL
-  // --------------------------------------------------------------------------
-  {
-    name: 'Advanced - Urban Planning Debate',
-    description: 'A high-level professional discussion about city policy.',
-    inputs: {
-      userLevel: 'advanced',
-      targetLanguage: 'Spanish',
-      conversationLength: 'long',
-      instructions:
-        'Two urban planners are debating a new law that would ban all cars from the city center. They discuss logistics, pollution, and public reaction.',
-      userWordList: [
-        'desarrollar',
-        'lograr',
-        'actual',
-        'rincón',
-        'queja',
-        'soportar',
-        'habría',
-        'si hubiera',
-        'claro',
-        'tal vez',
-      ],
-      userGrammarList: [
-        'passive se constructions',
-        'conditional perfect',
-        'subjunctive in adjective clauses',
-        'formal business connectors',
-      ],
-    },
-  },
-
-  // --------------------------------------------------------------------------
-  // WEIRD / FUN - THE CLUMSY SUPERHERO
-  // --------------------------------------------------------------------------
-  {
-    name: 'Beginner - The Clumsy Superhero',
-    description:
-      'A superhero trying to buy a normal suit because they ripped their costume.',
-    inputs: {
-      userLevel: 'beginner',
-      targetLanguage: 'Spanish',
-      conversationLength: 'short',
-      instructions:
-        'A superhero enters a clothing store. They are embarrassed because their cape got stuck in a door and they need a normal shirt immediately.',
-      userWordList: [
-        'verde',
-        'casa',
-        'amigo',
-        'mañana',
-        'noche',
-        'feliz',
-        'mesa',
-        'silla',
-        'ventana',
-        'libro',
-      ],
-      userGrammarList: [
-        'present tense',
-        'expressing needs (necesitar/querer)',
-        'colors and clothing vocabulary',
-        'basic questions',
-      ],
+        'Create a long conversation (12+ turns) between two colleagues debating remote work policies. Use subjunctive (opinions, doubts), conditional ("if we had..."), and formal register.',
     },
   },
 ];

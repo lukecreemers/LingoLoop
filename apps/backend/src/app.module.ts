@@ -5,6 +5,7 @@ import { FillInBlanksModule } from './modules/fill-in-blanks/fill-in-blanks.modu
 import { LessonsModule } from './modules/lessons/lessons.module';
 import { TranslationMarkingModule } from './modules/translation-marking/translation-marking.module';
 import { AiAssistModule } from './modules/ai-assist/ai-assist.module';
+import { TtsModule } from './modules/tts/tts.module';
 
 @Module({
   imports: [
@@ -12,6 +13,7 @@ import { AiAssistModule } from './modules/ai-assist/ai-assist.module';
     LessonsModule,
     TranslationMarkingModule,
     AiAssistModule,
+    TtsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

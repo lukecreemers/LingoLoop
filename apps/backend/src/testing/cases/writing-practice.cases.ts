@@ -2,40 +2,7 @@ import type { PromptTestConfig, ModelConfig, TestCase } from '../prompt-tester';
 import { WPOutputSchema } from '../../shared/types/writing-practice.types';
 
 // ============================================================================
-// WRITING PRACTICE GENERATION PROMPT
-// ============================================================================
-
-export const WP_PROMPT_TEMPLATE = `You are an expert language teacher creating writing practice prompts.
-
-## Context
-- User Level: {{userLevel}}
-- Target Language: {{targetLanguage}}
-- Native Language: {{nativeLanguage}}
-- Known Vocabulary: {{userWordList}}
-
-## Instructions
-{{instructions}}
-
-## Requirements
-1. Create {{promptCount}} writing prompts based on the instructions
-2. Each prompt should:
-   - Be written in {{targetLanguage}}
-   - Include a translation in {{nativeLanguage}} for clarity
-   - Be appropriate for the user's level
-   - Encourage creative but structured responses
-3. For beginners: Focus on simple questions about daily life, preferences, descriptions
-4. For intermediate: Include opinion questions, comparisons, short narratives
-5. For advanced: Complex topics, hypotheticals, argumentative prompts
-6. Include optional hints (useful vocabulary or grammar structures) when helpful
-7. Specify expected response length based on complexity
-
-## Output Format
-Provide a JSON object with:
-- topic: The overall theme of the prompts
-- prompts: Array of writing prompt objects`;
-
-// ============================================================================
-// INPUT INTERFACE
+// INPUT TYPE - Simplified to just instructions + context
 // ============================================================================
 
 export interface WPInputs extends Record<string, string | number | string[]> {
@@ -43,9 +10,36 @@ export interface WPInputs extends Record<string, string | number | string[]> {
   targetLanguage: string;
   nativeLanguage: string;
   instructions: string;
-  promptCount: string;
-  userWordList: string;
 }
+
+// ============================================================================
+// PROMPT TEMPLATE - All details come from instructions
+// ============================================================================
+
+export const WP_PROMPT_TEMPLATE = `
+### TASK
+Create writing practice prompts for a {{userLevel}} {{targetLanguage}} learner (native {{nativeLanguage}}).
+
+### INSTRUCTIONS (contains all specifications)
+{{instructions}}
+
+### LEVEL DEFAULTS (use if not specified in instructions)
+- **Beginner:** 2 prompts, expect 2-3 sentence responses, simple questions (describe, list)
+- **Intermediate:** 2-3 prompts, expect short paragraph responses, opinion/comparison questions
+- **Advanced:** 3 prompts, expect longer responses, hypothetical/argumentative questions
+
+### CONSTRAINTS
+1. Write prompts in {{targetLanguage}} with translation in {{nativeLanguage}}
+2. Include helpful hints (useful vocabulary or structures)
+3. Match complexity to the user's level
+4. Prompts should encourage creative but structured responses
+
+### OUTPUT FORMAT
+Return JSON with:
+- topic: Overall theme of the prompts
+- prompts: Array of { prompt, promptTranslation, hints[], expectedLength }
+  - expectedLength: "short" | "medium" | "long"
+`.trim();
 
 // ============================================================================
 // TEST CASES
@@ -53,39 +47,33 @@ export interface WPInputs extends Record<string, string | number | string[]> {
 
 export const WP_TEST_CASES: TestCase<WPInputs>[] = [
   {
-    name: 'beginner_daily_life',
+    name: 'Beginner - Daily Routine',
     inputs: {
       userLevel: 'beginner',
       targetLanguage: 'Spanish',
       nativeLanguage: 'English',
       instructions:
-        'Create prompts about daily routines and describing your typical day',
-      promptCount: '3',
-      userWordList: 'despertarse, comer, trabajar, dormir',
+        'Create 2 writing prompts about daily routines. Expect 2-3 sentence responses. Include vocabulary hints for common verbs (despertarse, comer, trabajar).',
     },
   },
   {
-    name: 'intermediate_opinions',
+    name: 'Intermediate - Technology Opinions',
     inputs: {
       userLevel: 'intermediate',
       targetLanguage: 'Spanish',
       nativeLanguage: 'English',
       instructions:
-        'Create prompts asking for opinions about technology and social media',
-      promptCount: '2',
-      userWordList: 'tecnología, redes sociales, ventajas, desventajas',
+        'Create 2 writing prompts asking for opinions about social media. Expect short paragraph responses. Include hints for expressing opinion (creo que, en mi opinión).',
     },
   },
   {
-    name: 'advanced_hypotheticals',
+    name: 'Advanced - Hypotheticals',
     inputs: {
       userLevel: 'advanced',
       targetLanguage: 'Spanish',
       nativeLanguage: 'English',
       instructions:
-        'Create prompts using subjunctive mood for hypothetical situations',
-      promptCount: '2',
-      userWordList: 'si pudiera, ojalá, como si, aunque',
+        'Create 3 writing prompts using hypothetical situations (si pudiera, si hubiera). Expect longer paragraph responses. Focus on subjunctive structures.',
     },
   },
 ];
@@ -112,4 +100,3 @@ export const WP_TEST_CONFIG: PromptTestConfig<WPInputs, unknown> = {
   models: WP_MODELS,
   outputSchema: WPOutputSchema,
 };
-

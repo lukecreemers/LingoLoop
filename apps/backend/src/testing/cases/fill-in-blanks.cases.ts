@@ -3,160 +3,85 @@ import type { PromptTestConfig, TestCase } from '../prompt-tester';
 import { ModelConfig } from '../test.types';
 
 // ============================================================================
-// INPUT TYPE - Define what variables your prompt needs
+// INPUT TYPE - Simplified to just instructions + context
 // ============================================================================
 
 export interface FIBInputs extends Record<string, string | number | string[]> {
   userLevel: string;
+  targetLanguage: string;
   instructions: string;
-  blankAmount: number;
-  distractorInstructions: string;
-  disctractorCount: number;
-  userWordList: string[];
-  sentenceCount: number;
 }
 
 // ============================================================================
-// PROMPT TEMPLATE - Easy to read and modify
+// PROMPT TEMPLATE - All details come from instructions
 // ============================================================================
 
 export const FIB_PROMPT_TEMPLATE = `
-### PRIMARY TASK
-Create {{sentenceCount}} "Fill in the Blank" exercises for a {{userLevel}} Spanish student focusing STRICTLY on: {{instructions}}.
+### TASK
+Create "Fill in the Blank" exercises for a {{userLevel}} {{targetLanguage}} student.
 
-### CONTENT HIERARCHY
-1. **GRAMMAR FIRST (100% WEIGHT):** The priority is a perfect, deterministic test of the target grammar.
-2. **OPTIONAL VOCAB (10% WEIGHT):** You may use words from this list: [{{userWordList}}], but ONLY if they fit the primary task context perfectly and naturally. 
-   - DO NOT force these words.
-   - If a word from this list makes the sentence sound "robot-written" or strange, IGNORE IT.
-   - The grammar goal is the only thing that matters.
+### INSTRUCTIONS (contains all exercise specifications)
+{{instructions}}
+
+### LEVEL DEFAULTS (use if not specified in instructions)
+- **Beginner:** 3 sentences, 1 blank per sentence, 3 distractors
+- **Intermediate:** 4 sentences, 1-2 blanks per sentence, 3-4 distractors
+- **Advanced:** 5 sentences, 2 blanks per sentence, 4 distractors
 
 ### CONSTRAINTS (CRITICAL)
-1. **Zero Ambiguity:** Distractors must be contextually and semantically **incorrect**. If a distractor makes sense in the sentence, it is a fail.
-2. **Real Words Only:** All distractors must be valid, real Spanish words. Never hallucinate suffixes or forms.
-3. **No Duplicate Answers:** Do not include any of the 'correctAnswer' strings inside the 'distractors' array.
-4. **Natural Syntax:** Ensure the sequence of 'text' and 'blank' segments forms a perfectly fluid, natural sentence.
-5. **Unique Answers:** In multi-blank sentences, each answer must logically fit only its designated slot. Ensure answers are not semantically interchangeable. 
-6. **Distractor Logic:** {{distractorInstructions}}. Add {{distractorCount}} distractors to the sentence.
+1. **Zero Ambiguity:** Each blank must have ONLY ONE correct answer. Distractors must be contextually and semantically **incorrect**. If a distractor could work in the sentence, it fails.
+2. **Real Words Only:** All distractors must be valid, real {{targetLanguage}} words. Never invent forms.
+3. **No Duplicate Answers:** Do not include correct answers in the distractors array.
+4. **Natural Syntax:** Sentences must sound native and natural, not robotic.
+5. **Unique Slots:** In multi-blank sentences, each answer fits only its designated slot. Answers should not be interchangeable.
+6. **Distractor Strategy:** Distractors should be "near misses" - same category but wrong for the specific context (e.g., wrong conjugation, wrong gender, similar but incorrect verb).
+
+### OUTPUT FORMAT
+Return JSON with "exercises" array. Each exercise has:
+- template: Sentence with [*] markers for blanks
+- answers: Array of correct answers (matching [*] order)
+- distractors: Array of wrong but plausible options
 `.trim();
 
 // ============================================================================
-// TEST CASES - Easy to add, remove, or modify
+// TEST CASES
 // ============================================================================
 
 export const FIB_TEST_CASES: TestCase<FIBInputs>[] = [
   {
-    name: 'Beginner - Gender/Number Agreement',
-    description:
-      'Target: Plural feminine noun-adjective agreement. Environment: Household items.',
+    name: 'Beginner - Ser vs Estar',
+    description: 'Basic ser/estar distinction with simple sentences.',
     inputs: {
       userLevel: 'beginner',
+      targetLanguage: 'Spanish',
       instructions:
-        'Construct a sentence using plural feminine nouns and matching adjectives.',
-      blankAmount: 2,
-      distractorInstructions:
-        'Must use the same adjectives but with incorrect gender (o/a) and number (s) suffixes.',
-      disctractorCount: 4,
-      userWordList: [
-        'mesas',
-        'sillas',
-        'rojas',
-        'limpias',
-        'familia',
-        'libro',
-        'verdes',
-        'ventana',
-        'amigo',
-        'casa',
-      ],
-      sentenceCount: 3,
+        'Create 3 fill-in-the-blank sentences testing ser vs estar. 1 blank per sentence. Distractors should be the wrong verb choice (if answer is "es", include "está" as distractor).',
     },
   },
   {
-    name: 'Intermediate - Semantic Distinction',
-    description:
-      'Target: Saber vs Conocer contrast. Environment: Urban navigation and facts.',
+    name: 'Intermediate - Preterite vs Imperfect',
+    description: 'Past tense contrast in narrative context.',
     inputs: {
       userLevel: 'intermediate',
+      targetLanguage: 'Spanish',
       instructions:
-        'Contrast the usage of "saber" for facts and "conocer" for familiarity with places.',
-      blankAmount: 2,
-      distractorInstructions:
-        'Swap the verbs. If the answer is "conozco", the primary distractor must be "sé".',
-      disctractorCount: 4,
-      userWordList: [
-        'desarrollar',
-        'alrededor',
-        'cotidiano',
-        'lograr',
-        'queja',
-        'actual',
-        'rincón',
-        'soportar',
-        'aprovechar',
-        'extraño',
-      ],
-      sentenceCount: 3,
+        'Create 4 fill-in-the-blank sentences testing preterite vs imperfect. 1 blank per sentence. Include context clues (time expressions, ongoing vs completed actions). Distractors: wrong tense of the same verb.',
     },
   },
   {
-    name: 'Advanced - Hypothetical Syntax',
-    description:
-      'Target: Imperfect Subjunctive. Trigger: "Como si". Environment: Professional feedback.',
+    name: 'Advanced - Subjunctive Triggers',
+    description: 'Subjunctive mood after specific triggers.',
     inputs: {
       userLevel: 'advanced',
+      targetLanguage: 'Spanish',
       instructions:
-        'Trigger the imperfect subjunctive using the phrase "como si" in a professional context.',
-      blankAmount: 2,
-      distractorInstructions:
-        'Provide the correct verb in present indicative and present subjunctive to test tense-sequence knowledge.',
-      disctractorCount: 4,
-      userWordList: [
-        'ojalá',
-        'habría',
-        'si hubiera',
-        'tal vez',
-        'dudo que',
-        'es posible que',
-        'clavo',
-        'lengua',
-        'pelo',
-        'claro',
-      ],
-      sentenceCount: 3,
-    },
-  },
-  {
-    name: 'Spaced Repetition Injection',
-    description:
-      'Target: Vocabulary retention. Requirement: Inject specific unrelated words into a coherent sentence.',
-    inputs: {
-      userLevel: 'intermediate',
-      instructions:
-        'Create a conversational sentence. Requirement: Incorporate at least 3 words from the word list into the static text.',
-      blankAmount: 1,
-      distractorInstructions:
-        'Distractors must match the part-of-speech of the blank word but be contextually incorrect.',
-      disctractorCount: 4,
-      userWordList: [
-        'aunque',
-        'sin embargo',
-        'zanahoria',
-        'biblioteca',
-        'mientras',
-        'correr',
-        'pesado',
-        'brillante',
-        'lejos',
-        'decidir',
-      ],
-      sentenceCount: 3,
+        'Create 5 fill-in-the-blank sentences testing subjunctive after doubt/emotion triggers (dudo que, es posible que, ojalá). 2 blanks per sentence. Distractors: indicative forms of the same verb.',
     },
   },
 ];
 
 // ============================================================================
-// MODELS TO TEST - Easy to swap or add new models
+// MODELS TO TEST
 // ============================================================================
 
 export const FIB_MODELS: ModelConfig[] = [
@@ -165,31 +90,10 @@ export const FIB_MODELS: ModelConfig[] = [
     model: 'claude-haiku-4-5',
     temperature: 0.7,
   },
-  // {
-  //   provider: 'anthropic' as const,
-  //   model: 'claude-sonnet-4-5',
-  //   temperature: 0.7,
-  // },
-  // {
-  //   provider: 'deepseek' as const,
-  //   model: 'deepseek-chat',
-  // },
-
-  // Uncomment to test more models:
-  // {
-  //   provider: 'anthropic' as const,
-  //   model: 'claude-3-5-sonnet-20241022',
-  //   temperature: 0.7,
-  // },
-  // {
-  //   provider: 'openai' as const,
-  //   model: 'gpt-4o-mini',
-  //   temperature: 0.7,
-  // },
 ];
 
 // ============================================================================
-// EXPORT COMPLETE CONFIG
+// EXPORT CONFIG
 // ============================================================================
 
 export const FIB_TEST_CONFIG: PromptTestConfig<FIBInputs, unknown> = {

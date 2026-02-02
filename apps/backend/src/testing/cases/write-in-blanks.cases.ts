@@ -3,188 +3,81 @@ import type { PromptTestConfig, TestCase } from '../prompt-tester';
 import { ModelConfig } from '../test.types';
 
 // ============================================================================
-// INPUT TYPE - Define what variables your prompt needs
+// INPUT TYPE - Simplified to just instructions + context
 // ============================================================================
 
 export interface WIBInputs extends Record<string, string | number | string[]> {
   userLevel: string;
+  targetLanguage: string;
   instructions: string;
-  blankAmount: number;
-  userWordList: string[];
-  sentenceCount: number;
 }
 
 // ============================================================================
-// PROMPT TEMPLATE - Easy to read and modify
+// PROMPT TEMPLATE - All details come from instructions
 // ============================================================================
 
 export const WIB_PROMPT_TEMPLATE = `
-Create {{sentenceCount}} "Write in the Blank" exercises for a {{userLevel}} Spanish student.
+### TASK
+Create "Write in the Blank" exercises for a {{userLevel}} {{targetLanguage}} student.
+Unlike fill-in-the-blanks, this exercise requires the student to TYPE the answer (no multiple choice).
 
-Topic: {{instructions}}
-Blank word amount: {{blankAmount}}
-The student also needs to review these words: {{userWordList}}. Try and naturally work some these words into a few of the sentences as non blank words if possible, but always prioritise the coherency of the sentence. The user is learning how to use these words properly and thus should only read them in contexts where they make complete sense.
-Again, these words are not the priority of the learning, but if you can fit them in naturally, do so. Never
+### INSTRUCTIONS (contains all exercise specifications)
+{{instructions}}
+
+### LEVEL DEFAULTS (use if not specified in instructions)
+- **Beginner:** 2-3 sentences, 1 blank per sentence
+- **Intermediate:** 3-4 sentences, 1-2 blanks per sentence  
+- **Advanced:** 4-5 sentences, 2 blanks per sentence
 
 ### CONSTRAINTS (CRITICAL)
-1. **Target Word/Grammar:** {{instructions}}
-2. **Blank Marker:** Use exactly {{blankAmount}} blanks per sentence, marked with [*].
-3. **Clue Integration:** Every blank MUST have a corresponding clue (e.g., an infinitive verb like "(tener)" or a base noun) that provides the user with the root word to be conjugated or transformed.
-4. **Deterministic Answers:** The sentence context must be so specific that only ONE correct form/word fits the blank. Avoid sentences where multiple tenses or synonyms could logically work.
-5. **Natural Syntax:** The resulting full sentence must be conversational, high-quality Spanish.
+1. **Clue Required:** Every blank MUST have a clue that tells the user what word to transform (e.g., infinitive verb "(tener)", base noun, English translation).
+2. **Deterministic Answers:** The context must be specific enough that only ONE correct form fits. Avoid ambiguous sentences.
+3. **Accepted Alternates:** For valid variations (e.g., -ra/-se subjunctive), include them in "acceptedAlternates".
+4. **Natural Syntax:** Sentences must sound native and conversational.
+5. **Blank Marker:** Use [*] to mark each blank position in the template.
+
+### OUTPUT FORMAT
+Return JSON with "exercises" array. Each exercise has:
+- template: Sentence with [*] markers for blanks
+- blanks: Array of blank objects, each with:
+  - correctAnswer: The primary correct answer
+  - clue: What the user sees as a hint (e.g., "(hablar)")
+  - acceptedAlternates: Array of other valid answers
 `.trim();
 
 // ============================================================================
-// TEST CASES - Easy to add, remove, or modify
+// TEST CASES
 // ============================================================================
 
 export const WIB_TEST_CASES: TestCase<WIBInputs>[] = [
-  // --------------------------------------------------------------------------
-  // BEGINNER: Production Fundamentals
-  // --------------------------------------------------------------------------
   {
-    name: 'Beginner - -AR Verb Production',
-    description:
-      'Target: Present tense -ar endings. Focus: Subject-verb agreement.',
+    name: 'Beginner - Present Tense AR Verbs',
+    description: 'Simple verb conjugation practice.',
     inputs: {
       userLevel: 'beginner',
+      targetLanguage: 'Spanish',
       instructions:
-        'Topic: Present Tense -AR Verbs. ' +
-        'Verb Pool: [hablar, estudiar, trabajar, cocinar]. ' +
-        'Requirement: Use different subject pronouns (yo, tú, nosotros) across the 3 exercises. ' +
-        'Clue Format: Provide the infinitive in parentheses, e.g., "(hablar)".',
-      blankAmount: 1,
-      userWordList: [
-        'casa',
-        'escuela',
-        'amigo',
-        'día',
-        'mañana',
-        'mesa',
-        'libro',
-      ],
-      sentenceCount: 3,
+        'Create 3 write-in-the-blank sentences for present tense -ar verb conjugation (hablar, estudiar, trabajar). 1 blank per sentence. Provide the infinitive as a clue in parentheses. Use different subject pronouns.',
     },
   },
   {
-    name: 'Beginner - Estar + Location/State',
-    description:
-      'Target: Estar for temporary states. Requirement: Correct accents.',
-    inputs: {
-      userLevel: 'beginner',
-      instructions:
-        'Topic: Estar (Present Tense). ' +
-        'Context: Temporary emotional states or physical locations. ' +
-        'Constraint: Do NOT use "Ser". The sentence must trigger "Estar" uniquely (e.g., using "ahora" or "en este momento"). ' +
-        'Clue Format: "(estar)".',
-      blankAmount: 1,
-      userWordList: [
-        'feliz',
-        'cansado',
-        'en casa',
-        'mañana',
-        'ventana',
-        'día',
-        'noche',
-      ],
-      sentenceCount: 3,
-    },
-  },
-
-  // --------------------------------------------------------------------------
-  // INTERMEDIATE: Grammatical Mechanics
-  // --------------------------------------------------------------------------
-  {
-    name: 'Intermediate - Preterite Stem-Changers (-ir)',
-    description: 'Target: 3rd person e->i / o->u changes.',
+    name: 'Intermediate - Reflexive Verbs',
+    description: 'Reflexive pronoun + verb production.',
     inputs: {
       userLevel: 'intermediate',
+      targetLanguage: 'Spanish',
       instructions:
-        'Topic: Preterite Stem-Changing Verbs (-ir only). ' +
-        'Verb Pool: [dormir, pedir, servir, repetir, sentir]. ' +
-        'Constraint: Use ONLY 3rd person (él/ella/ellos) to trigger the stem change. ' +
-        'Requirement: Ensure the clue is just the infinitive, e.g., "(pedir)".',
-      blankAmount: 1,
-      userWordList: [
-        'ayer',
-        'semana pasada',
-        'de repente',
-        'lograr',
-        'aprovechar',
-        'extraño',
-      ],
-      sentenceCount: 3,
+        'Create 4 write-in-the-blank sentences for reflexive verbs in present tense (levantarse, ducharse, vestirse). 1 blank per sentence. The answer should include both the pronoun AND conjugated verb (e.g., "me levanto"). Clue format: infinitive with se, like "(ducharse)".',
     },
   },
   {
-    name: 'Intermediate - Reflexive Pronoun Placement',
-    description: 'Target: Pronoun + Verb production.',
-    inputs: {
-      userLevel: 'intermediate',
-      instructions:
-        'Topic: Reflexive Verbs (Present Tense). ' +
-        'Verb Pool: [levantarse, ducharse, vestirse, acostarse]. ' +
-        'Constraint: The blank [*] MUST be filled with both the reflexive pronoun AND the conjugated verb (e.g., "me levanto"). ' +
-        'Clue Format: Use the infinitive with "se", e.g., "(ducharse)".',
-      blankAmount: 1,
-      userWordList: [
-        'temprano',
-        'rápidamente',
-        'cotidiano',
-        'desarrollar',
-        'alrededor',
-        'siempre',
-      ],
-      sentenceCount: 3,
-    },
-  },
-
-  // --------------------------------------------------------------------------
-  // ADVANCED: Syntactic Precision
-  // --------------------------------------------------------------------------
-  {
-    name: 'Advanced - Pure Imperfect Subjunctive',
-    description: 'Target: Hypothetical "como si" constructions.',
+    name: 'Advanced - Imperfect Subjunctive',
+    description: 'Hypothetical constructions with "como si".',
     inputs: {
       userLevel: 'advanced',
+      targetLanguage: 'Spanish',
       instructions:
-        'Topic: Imperfect Subjunctive. ' +
-        'Constraint: Trigger strictly using "como si" in professional or academic contexts. ' +
-        'Requirement: Use both -ra and -se forms interchangeably in "acceptedAlternates" but use -ra as the primary correctAnswer.',
-      blankAmount: 2,
-      userWordList: [
-        'ojalá',
-        'tal vez',
-        'dudo que',
-        'clavo',
-        'lengua',
-        'rincón',
-        'actual',
-      ],
-      sentenceCount: 3,
-    },
-  },
-  {
-    name: 'Advanced - Conditional Perfect',
-    description: 'Target: habría + participle.',
-    inputs: {
-      userLevel: 'advanced',
-      instructions:
-        'Topic: Conditional Perfect (Compound Tense). ' +
-        'Structure: "Si [Pluperfect Subjunctive], then [Conditional Perfect]". ' +
-        'Blank Requirements: Blank 1 = "habría" (auxiliary). Blank 2 = past participle. ' +
-        'Clue Format: Blank 1 clue is "(haber)", Blank 2 clue is the infinitive of the action.',
-      blankAmount: 2,
-      userWordList: [
-        'si hubiera',
-        'en tu lugar',
-        'habría',
-        'claro',
-        'posible',
-        'pelo',
-        'lengua',
-      ],
-      sentenceCount: 3,
+        'Create 4 write-in-the-blank sentences using imperfect subjunctive triggered by "como si". 2 blanks per sentence. Use -ra form as primary answer but include -se form in acceptedAlternates.',
     },
   },
 ];
@@ -199,19 +92,10 @@ export const WIB_MODELS: ModelConfig[] = [
     model: 'claude-haiku-4-5',
     temperature: 0.7,
   },
-  // {
-  //   provider: 'anthropic' as const,
-  //   model: 'claude-sonnet-4-5',
-  //   temperature: 0.7,
-  // },
-  // {
-  //   provider: 'deepseek' as const,
-  //   model: 'deepseek-chat',
-  // },
 ];
 
 // ============================================================================
-// EXPORT COMPLETE CONFIG
+// EXPORT CONFIG
 // ============================================================================
 
 export const WIB_TEST_CONFIG: PromptTestConfig<WIBInputs, unknown> = {

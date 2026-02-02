@@ -33,6 +33,8 @@ export interface PromptTestConfig<
   outputSchema: ZodSchema<TOutput>;
   testCases: TestCase<TInput>[];
   models: ModelConfig[];
+  /** If true, uses raw text output instead of structured output (for explanations, etc.) */
+  useRawTextOutput?: boolean;
 }
 
 export interface TestResult<TOutput> {
@@ -138,6 +140,34 @@ export class PromptTester<
 
     try {
       const model = this.createModel(modelConfig);
+
+      // Use raw text output if configured (for explanations, etc.)
+      if (this.config.useRawTextOutput) {
+        const response = await model.invoke(prompt);
+        const content =
+          typeof response.content === 'string'
+            ? response.content
+            : String(response.content);
+
+        // Extract token usage from response metadata
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const usageMetadata = (response as any)?.usage_metadata;
+        const inputTokens = usageMetadata?.input_tokens as number | undefined;
+        const outputTokens = usageMetadata?.output_tokens as number | undefined;
+
+        return {
+          testName: testCase.name,
+          model: modelName,
+          success: true,
+          output: content as TOutput,
+          durationMs: Date.now() - startTime,
+          prompt,
+          inputTokens,
+          outputTokens,
+        };
+      }
+
+      // Standard structured output
       const structuredModel = model.withStructuredOutput(
         this.config.outputSchema,
         { includeRaw: true },

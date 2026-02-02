@@ -393,7 +393,7 @@ export default function WordMeaningMatch({
                     </div>
                     <ExplainWrongButton
                       input={{
-                        unitType: "word meaning match",
+                        unitType: "word_match",
                         context: `Match ${currentExercise.columnLabels.a} to ${currentExercise.columnLabels.b}`,
                         userAnswer: matches
                           .filter(

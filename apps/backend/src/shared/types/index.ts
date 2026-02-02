@@ -43,3 +43,7 @@ export * from './flashcard.types';
 export * from './writing-practice.types';
 export * from './writing-practice.dto';
 export * from './word-order.types';
+export * from './topic-breakdown.types';
+export * from './section-generation.types';
+export * from './sectioned-lesson.types';
+export * from './redo-section.dto';

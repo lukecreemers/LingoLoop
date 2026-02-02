@@ -377,9 +377,10 @@ export default function Explanation({
   plan: _plan,
   onComplete,
 }: ExplanationProps) {
+  // data is now just a string (the markdown content directly)
   const renderedContent = useMemo(() => {
-    return renderMarkdown(data.explanation);
-  }, [data.explanation]);
+    return renderMarkdown(data);
+  }, [data]);
 
   const handleContinue = () => {
     onComplete();

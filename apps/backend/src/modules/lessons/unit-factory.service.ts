@@ -1,31 +1,19 @@
 import { ChatAnthropic } from '@langchain/anthropic';
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
+import type { LessonDebugService } from './lesson-debug.service';
 
-// Schemas
+// Schemas (EXOutputSchema not needed - explanation uses raw text)
 import {
   CGOutputSchema,
   FIBOutputSchema,
   TGOutputSchema,
   WMMOutputSchema,
   WIBOutputSchema,
-  EXOutputSchema,
   FCOutputSchema,
   WPOutputSchema,
   WOOutputSchema,
 } from 'src/shared';
-import type {
-  LessonPlanUnit,
-  CompiledUnit,
-  ExplanationUnit,
-  FillInBlanksUnit,
-  WordMatchUnit,
-  WriteInBlanksUnit,
-  TranslationUnit,
-  ConversationUnit,
-  FlashcardUnit,
-  WritingPracticeUnit,
-  WordOrderUnit,
-} from 'src/shared';
+import type { LessonPlanUnit, CompiledUnit } from 'src/shared';
 import type { RedoUnitInput } from 'src/shared/types/redo-unit.dto';
 
 // Prompt templates from test cases
@@ -41,12 +29,13 @@ import { WO_PROMPT_TEMPLATE } from 'src/testing/cases/word-order.cases';
 import type { LessonContext } from './lesson.context';
 import { DEFAULT_WORD_LIST, DEFAULT_GRAMMAR_LIST } from './lesson.context';
 
-// Batching configuration for exercise generation
-const TOTAL_EXERCISES = 3;
-const MAX_BATCH_SIZE = 3;
+// Retry configuration
+const MAX_RETRIES = 3;
+const RETRY_DELAY_MS = 500;
 
 @Injectable()
 export class UnitFactoryService {
+  private readonly logger = new Logger(UnitFactoryService.name);
   private llm: ChatAnthropic;
 
   constructor() {
@@ -57,54 +46,108 @@ export class UnitFactoryService {
   }
 
   /**
-   * Execute a single unit from the lesson plan
+   * Execute a single unit from the lesson plan with retry logic
+   * All units now just have type + instructions
    */
   async executeUnit(
     unit: LessonPlanUnit,
     context: LessonContext,
+    avoidContext?: string,
   ): Promise<CompiledUnit> {
-    switch (unit.type) {
-      case 'flashcard':
-        return this.executeFlashcardUnit(unit, context);
-      case 'explanation':
-        return this.executeExplanationUnit(unit, context);
-      case 'fill in the blanks':
-        return this.executeFillInBlanksUnit(unit, context);
-      case 'word meaning match':
-        return this.executeWordMatchUnit(unit, context);
-      case 'write in the blanks':
-        return this.executeWriteInBlanksUnit(unit, context);
-      case 'translation':
-        return this.executeTranslationUnit(unit, context);
-      case 'conversation':
-        return this.executeConversationUnit(unit, context);
-      case 'writing practice':
-        return this.executeWritingPracticeUnit(unit, context);
-      case 'word order':
-        return this.executeWordOrderUnit(unit, context);
-      default:
-        throw new Error(`Unknown unit type: ${(unit as LessonPlanUnit).type}`);
+    const prompt = this.buildUnitPrompt(unit, context, avoidContext);
+
+    let lastError: Error | null = null;
+
+    for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+      try {
+        let output: unknown;
+
+        // Explanation doesn't need structured output - just get raw text
+        if (unit.type === 'explanation') {
+          const response = await this.llm.invoke(prompt);
+          output = typeof response.content === 'string' 
+            ? response.content 
+            : String(response.content);
+        } else {
+          // All other unit types use structured output
+          const schema = this.getSchemaForType(unit.type);
+          const structuredLlm = this.llm.withStructuredOutput(schema);
+          output = await structuredLlm.invoke(prompt);
+        }
+
+        return { type: unit.type, plan: unit, output } as CompiledUnit;
+      } catch (error) {
+        lastError = error as Error;
+        this.logger.warn(
+          `Unit execution failed (attempt ${attempt}/${MAX_RETRIES}) for ${unit.type}: ${lastError.message}`,
+        );
+
+        if (attempt < MAX_RETRIES) {
+          // Wait before retrying
+          await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY_MS));
+        }
+      }
     }
+
+    // All retries exhausted
+    this.logger.error(
+      `Unit execution failed after ${MAX_RETRIES} attempts for ${unit.type}`,
+    );
+    throw lastError;
   }
 
   /**
-   * Execute all units in a lesson plan
+   * Execute all units in a lesson plan (in parallel)
    */
   async executeAllUnits(
     units: LessonPlanUnit[],
     context: LessonContext,
   ): Promise<CompiledUnit[]> {
-    const compiledUnits: CompiledUnit[] = [];
-    for (const unit of units) {
-      const compiled = await this.executeUnit(unit, context);
-      compiledUnits.push(compiled);
-    }
-    return compiledUnits;
+    return Promise.all(units.map((unit) => this.executeUnit(unit, context)));
+  }
+
+  /**
+   * Execute all units with debug logging (in parallel)
+   */
+  async executeAllUnitsWithDebug(
+    units: LessonPlanUnit[],
+    context: LessonContext,
+    sectionIndex: number,
+    debugService: LessonDebugService,
+  ): Promise<CompiledUnit[]> {
+    return Promise.all(
+      units.map(async (unit, unitIndex) => {
+        const prompt = this.buildUnitPrompt(unit, context);
+
+        try {
+          const result = await this.executeUnit(unit, context);
+          debugService.logUnitExecution(
+            sectionIndex,
+            unitIndex,
+            unit.type,
+            prompt,
+            undefined,
+            result.output,
+          );
+          return result;
+        } catch (error) {
+          debugService.logUnitExecution(
+            sectionIndex,
+            unitIndex,
+            unit.type,
+            prompt,
+            undefined,
+            undefined,
+            error as Error,
+          );
+          throw error;
+        }
+      }),
+    );
   }
 
   /**
    * Regenerate a unit with different content
-   * Includes the previous output in the prompt to ensure variety
    */
   async redoUnit(input: RedoUnitInput): Promise<CompiledUnit> {
     const context: LessonContext = {
@@ -115,56 +158,91 @@ export class UnitFactoryService {
       userGrammarList: DEFAULT_GRAMMAR_LIST,
     };
 
-    // Build "avoid" context from previous output
     const avoidContext = this.buildAvoidContext(input.previousOutput);
+    return this.executeUnit(input.unitPlan, context, avoidContext);
+  }
 
-    switch (input.unitPlan.type) {
+  // ============================================================================
+  // PROMPT BUILDING
+  // ============================================================================
+
+  /**
+   * Build the prompt for a unit based on its type
+   */
+  private buildUnitPrompt(
+    unit: LessonPlanUnit,
+    context: LessonContext,
+    avoidContext?: string,
+  ): string {
+    const template = this.getTemplateForType(unit.type);
+
+    let prompt = this.buildPrompt(template, {
+      userLevel: context.userLevel,
+      targetLanguage: context.targetLanguage,
+      nativeLanguage: context.nativeLanguage,
+      instructions: unit.instructions,
+    });
+
+    if (avoidContext) {
+      prompt = `${avoidContext}\n\n${prompt}`;
+    }
+
+    return prompt;
+  }
+
+  /**
+   * Get the prompt template for a unit type
+   */
+  private getTemplateForType(type: LessonPlanUnit['type']): string {
+    switch (type) {
       case 'flashcard':
-        return this.executeFlashcardUnit(input.unitPlan, context, avoidContext);
+        return FC_PROMPT_TEMPLATE;
       case 'explanation':
-        return this.executeExplanationUnit(
-          input.unitPlan,
-          context,
-          avoidContext,
-        );
-      case 'fill in the blanks':
-        return this.executeFillInBlanksUnit(
-          input.unitPlan,
-          context,
-          avoidContext,
-        );
-      case 'word meaning match':
-        return this.executeWordMatchUnit(input.unitPlan, context, avoidContext);
-      case 'write in the blanks':
-        return this.executeWriteInBlanksUnit(
-          input.unitPlan,
-          context,
-          avoidContext,
-        );
+        return EX_PROMPT_TEMPLATE;
+      case 'fill_in_blanks':
+        return FIB_PROMPT_TEMPLATE;
+      case 'word_match':
+        return WMM_PROMPT_TEMPLATE;
+      case 'write_in_blanks':
+        return WIB_PROMPT_TEMPLATE;
       case 'translation':
-        return this.executeTranslationUnit(
-          input.unitPlan,
-          context,
-          avoidContext,
-        );
+        return TG_PROMPT_TEMPLATE;
       case 'conversation':
-        return this.executeConversationUnit(
-          input.unitPlan,
-          context,
-          avoidContext,
-        );
-      case 'writing practice':
-        return this.executeWritingPracticeUnit(
-          input.unitPlan,
-          context,
-          avoidContext,
-        );
-      case 'word order':
-        return this.executeWordOrderUnit(input.unitPlan, context, avoidContext);
+        return CG_PROMPT_TEMPLATE;
+      case 'writing_practice':
+        return WP_PROMPT_TEMPLATE;
+      case 'word_order':
+        return WO_PROMPT_TEMPLATE;
       default:
-        throw new Error(
-          `Unknown unit type: ${(input.unitPlan as LessonPlanUnit).type}`,
-        );
+        throw new Error(`Unknown unit type: ${type}`);
+    }
+  }
+
+  /**
+   * Get the output schema for a unit type (explanation handled separately - no structured output)
+   */
+  private getSchemaForType(type: LessonPlanUnit['type']) {
+    switch (type) {
+      case 'flashcard':
+        return FCOutputSchema;
+      case 'fill_in_blanks':
+        return FIBOutputSchema;
+      case 'word_match':
+        return WMMOutputSchema;
+      case 'write_in_blanks':
+        return WIBOutputSchema;
+      case 'translation':
+        return TGOutputSchema;
+      case 'conversation':
+        return CGOutputSchema;
+      case 'writing_practice':
+        return WPOutputSchema;
+      case 'word_order':
+        return WOOutputSchema;
+      case 'explanation':
+        throw new Error('Explanation uses raw text output, not structured output');
+      default:
+        throw new Error(`Unknown unit type: ${type}`);
     }
   }
 
@@ -178,18 +256,18 @@ export class UnitFactoryService {
         return `IMPORTANT: Generate completely different flashcards. DO NOT use any of these terms: ${terms}. Choose different vocabulary within the same theme.`;
 
       case 'explanation':
-        // Summarize key points to avoid repeating
-        const explanation = previousOutput.output.explanation;
+        // output is now just a string (the markdown content directly)
+        const explanation = previousOutput.output as string;
         return `IMPORTANT: Generate completely different content. The previous explanation covered: "${explanation.slice(0, 500)}...". Use different examples, different structure, and different explanations.`;
 
-      case 'fill in the blanks':
-      case 'write in the blanks':
+      case 'fill_in_blanks':
+      case 'write_in_blanks':
         const sentences = previousOutput.output.exercises
           .map((e) => e.template)
           .join('; ');
         return `IMPORTANT: Generate completely different sentences. DO NOT use any of these sentences or similar variations: ${sentences}`;
 
-      case 'word meaning match':
+      case 'word_match':
         const pairs = previousOutput.output.exercises
           .flatMap((e) => e.pairs.map((p) => p[0]))
           .join(', ');
@@ -202,13 +280,13 @@ export class UnitFactoryService {
       case 'conversation':
         return `IMPORTANT: Generate a completely different conversation. The previous conversation was: "${previousOutput.output.conversation.slice(0, 500)}...". Use different characters, different scenario, different dialogue.`;
 
-      case 'writing practice':
+      case 'writing_practice':
         const prompts = previousOutput.output.prompts
           .map((p) => p.prompt)
           .join('; ');
         return `IMPORTANT: Generate completely different writing prompts. DO NOT use any of these prompts or similar variations: ${prompts}`;
 
-      case 'word order':
+      case 'word_order':
         const woSentences = previousOutput.output.sentences
           .map((s) => s.sentence)
           .join('; ');
@@ -217,292 +295,6 @@ export class UnitFactoryService {
       default:
         return '';
     }
-  }
-
-  // ============================================================================
-  // FLASHCARD GENERATION
-  // ============================================================================
-
-  private async executeFlashcardUnit(
-    unit: FlashcardUnit,
-    context: LessonContext,
-    avoidContext?: string,
-  ): Promise<CompiledUnit> {
-    let prompt = this.buildPrompt(FC_PROMPT_TEMPLATE, {
-      userLevel: context.userLevel,
-      targetLanguage: context.targetLanguage,
-      nativeLanguage: context.nativeLanguage,
-      instructions: unit.instructions,
-      cardCount: unit.cardCount.toString(),
-      userWordList: context.userWordList.join(', '),
-    });
-
-    if (avoidContext) {
-      prompt = `${avoidContext}\n\n${prompt}`;
-    }
-
-    const structuredLlm = this.llm.withStructuredOutput(FCOutputSchema);
-    const output = await structuredLlm.invoke(prompt);
-
-    return { type: 'flashcard', plan: unit, output };
-  }
-
-  // ============================================================================
-  // EXPLANATION GENERATION
-  // ============================================================================
-
-  private async executeExplanationUnit(
-    unit: ExplanationUnit,
-    context: LessonContext,
-    avoidContext?: string,
-  ): Promise<CompiledUnit> {
-    let prompt = this.buildPrompt(EX_PROMPT_TEMPLATE, {
-      userLevel: context.userLevel,
-      targetLanguage: context.targetLanguage,
-      instructions: unit.instructions,
-      userWordList: context.userWordList.join(', '),
-      userGrammarList: context.userGrammarList.join(', '),
-    });
-
-    if (avoidContext) {
-      prompt = `${avoidContext}\n\n${prompt}`;
-    }
-
-    const structuredLlm = this.llm.withStructuredOutput(EXOutputSchema);
-    const output = await structuredLlm.invoke(prompt);
-
-    return { type: 'explanation', plan: unit, output };
-  }
-
-  // ============================================================================
-  // FILL IN THE BLANKS
-  // ============================================================================
-
-  private async executeFillInBlanksUnit(
-    unit: FillInBlanksUnit,
-    context: LessonContext,
-    avoidContext?: string,
-  ): Promise<CompiledUnit> {
-    // Calculate batch sizes: [3, 3, 3, 1] for 10 total
-    const batchSizes = this.calculateBatchSizes(
-      TOTAL_EXERCISES,
-      MAX_BATCH_SIZE,
-    );
-
-    // Run all batches in parallel
-    const batchPromises = batchSizes.map((batchSize) => {
-      let prompt = this.buildPrompt(FIB_PROMPT_TEMPLATE, {
-        userLevel: context.userLevel,
-        instructions: unit.instructions,
-        blankAmount: unit.blankAmount.toString(),
-        distractorInstructions: unit.distractorInstructions,
-        distractorCount: unit.distractorCount.toString(),
-        userWordList: context.userWordList.join(', '),
-        sentenceCount: batchSize.toString(),
-      });
-
-      if (avoidContext) {
-        prompt = `${avoidContext}\n\n${prompt}`;
-      }
-
-      const structuredLlm = this.llm.withStructuredOutput(FIBOutputSchema);
-      return structuredLlm.invoke(prompt);
-    });
-
-    const batchResults = await Promise.all(batchPromises);
-
-    // Combine all exercises from batches
-    const allExercises = batchResults.flatMap((result) => result.exercises);
-
-    return {
-      type: 'fill in the blanks',
-      plan: unit,
-      output: { exercises: allExercises },
-    };
-  }
-
-  // ============================================================================
-  // WORD MEANING MATCH
-  // ============================================================================
-
-  private async executeWordMatchUnit(
-    unit: WordMatchUnit,
-    context: LessonContext,
-    avoidContext?: string,
-  ): Promise<CompiledUnit> {
-    let prompt = this.buildPrompt(WMM_PROMPT_TEMPLATE, {
-      userLevel: context.userLevel,
-      matchType: unit.matchType,
-      theme: unit.theme,
-      pairCount: unit.pairCount.toString(),
-      distractorCount: unit.distractorCount.toString(),
-      userWordList: context.userWordList.join(', '),
-    });
-
-    if (avoidContext) {
-      prompt = `${avoidContext}\n\n${prompt}`;
-    }
-
-    const structuredLlm = this.llm.withStructuredOutput(WMMOutputSchema);
-    const output = await structuredLlm.invoke(prompt);
-
-    return { type: 'word meaning match', plan: unit, output };
-  }
-
-  // ============================================================================
-  // WRITE IN THE BLANKS
-  // ============================================================================
-
-  private async executeWriteInBlanksUnit(
-    unit: WriteInBlanksUnit,
-    context: LessonContext,
-    avoidContext?: string,
-  ): Promise<CompiledUnit> {
-    // Calculate batch sizes: [3, 3, 3, 1] for 10 total
-    const batchSizes = this.calculateBatchSizes(
-      TOTAL_EXERCISES,
-      MAX_BATCH_SIZE,
-    );
-
-    // Run all batches in parallel
-    const batchPromises = batchSizes.map((batchSize) => {
-      let prompt = this.buildPrompt(WIB_PROMPT_TEMPLATE, {
-        userLevel: context.userLevel,
-        instructions: unit.instructions,
-        blankAmount: unit.blankAmount.toString(),
-        userWordList: context.userWordList.join(', '),
-        sentenceCount: batchSize.toString(),
-      });
-
-      if (avoidContext) {
-        prompt = `${avoidContext}\n\n${prompt}`;
-      }
-
-      const structuredLlm = this.llm.withStructuredOutput(WIBOutputSchema);
-      return structuredLlm.invoke(prompt);
-    });
-
-    const batchResults = await Promise.all(batchPromises);
-
-    // Combine all exercises from batches
-    const allExercises = batchResults.flatMap((result) => result.exercises);
-
-    return {
-      type: 'write in the blanks',
-      plan: unit,
-      output: { exercises: allExercises },
-    };
-  }
-
-  // ============================================================================
-  // TRANSLATION GENERATION
-  // ============================================================================
-
-  private async executeTranslationUnit(
-    unit: TranslationUnit,
-    context: LessonContext,
-    avoidContext?: string,
-  ): Promise<CompiledUnit> {
-    let prompt = this.buildPrompt(TG_PROMPT_TEMPLATE, {
-      userLevel: context.userLevel,
-      instructions: unit.instructions,
-      sentenceCount: unit.sentenceCount.toString(),
-      startingLanguage: unit.startingLanguage,
-      languageToTranslateTo: unit.languageToTranslateTo,
-      userWordList: context.userWordList.join(', '),
-    });
-
-    if (avoidContext) {
-      prompt = `${avoidContext}\n\n${prompt}`;
-    }
-
-    const structuredLlm = this.llm.withStructuredOutput(TGOutputSchema);
-    const output = await structuredLlm.invoke(prompt);
-
-    return { type: 'translation', plan: unit, output };
-  }
-
-  // ============================================================================
-  // CONVERSATION GENERATION
-  // ============================================================================
-
-  private async executeConversationUnit(
-    unit: ConversationUnit,
-    context: LessonContext,
-    avoidContext?: string,
-  ): Promise<CompiledUnit> {
-    let prompt = this.buildPrompt(CG_PROMPT_TEMPLATE, {
-      userLevel: context.userLevel,
-      targetLanguage: context.targetLanguage,
-      instructions: unit.instructions,
-      conversationLength: unit.conversationLength,
-      userWordList: context.userWordList.join(', '),
-      userGrammarList: context.userGrammarList.join(', '),
-    });
-
-    if (avoidContext) {
-      prompt = `${avoidContext}\n\n${prompt}`;
-    }
-
-    const structuredLlm = this.llm.withStructuredOutput(CGOutputSchema);
-    const output = await structuredLlm.invoke(prompt);
-
-    return { type: 'conversation', plan: unit, output };
-  }
-
-  // ============================================================================
-  // WRITING PRACTICE GENERATION
-  // ============================================================================
-
-  private async executeWritingPracticeUnit(
-    unit: WritingPracticeUnit,
-    context: LessonContext,
-    avoidContext?: string,
-  ): Promise<CompiledUnit> {
-    let prompt = this.buildPrompt(WP_PROMPT_TEMPLATE, {
-      userLevel: context.userLevel,
-      targetLanguage: context.targetLanguage,
-      nativeLanguage: context.nativeLanguage,
-      instructions: unit.instructions,
-      promptCount: unit.promptCount.toString(),
-      userWordList: context.userWordList.join(', '),
-    });
-
-    if (avoidContext) {
-      prompt = `${avoidContext}\n\n${prompt}`;
-    }
-
-    const structuredLlm = this.llm.withStructuredOutput(WPOutputSchema);
-    const output = await structuredLlm.invoke(prompt);
-
-    return { type: 'writing practice', plan: unit, output };
-  }
-
-  // ============================================================================
-  // WORD ORDER GENERATION
-  // ============================================================================
-
-  private async executeWordOrderUnit(
-    unit: WordOrderUnit,
-    context: LessonContext,
-    avoidContext?: string,
-  ): Promise<CompiledUnit> {
-    let prompt = this.buildPrompt(WO_PROMPT_TEMPLATE, {
-      userLevel: context.userLevel,
-      targetLanguage: context.targetLanguage,
-      nativeLanguage: context.nativeLanguage,
-      instructions: unit.instructions,
-      sentenceCount: unit.sentenceCount.toString(),
-    });
-
-    if (avoidContext) {
-      prompt = `${avoidContext}\n\n${prompt}`;
-    }
-
-    const structuredLlm = this.llm.withStructuredOutput(WOOutputSchema);
-    const output = await structuredLlm.invoke(prompt);
-
-    return { type: 'word order', plan: unit, output };
   }
 
   // ============================================================================
@@ -519,22 +311,5 @@ export class UnitFactoryService {
     return template.replace(/\{\{(\w+)\}\}/g, (_, key) => {
       return values[key] ?? '';
     });
-  }
-
-  /**
-   * Calculate batch sizes for parallel execution
-   * E.g., (10, 3) => [3, 3, 3, 1]
-   */
-  private calculateBatchSizes(total: number, maxBatchSize: number): number[] {
-    const batches: number[] = [];
-    let remaining = total;
-
-    while (remaining > 0) {
-      const batchSize = Math.min(remaining, maxBatchSize);
-      batches.push(batchSize);
-      remaining -= batchSize;
-    }
-
-    return batches;
   }
 }

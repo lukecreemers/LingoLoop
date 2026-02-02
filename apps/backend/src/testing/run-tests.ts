@@ -19,6 +19,8 @@ import { FC_TEST_CONFIG } from './cases/flashcard.cases';
 import { WP_TEST_CONFIG } from './cases/writing-practice.cases';
 import { WP_MARKING_TEST_CONFIG } from './cases/writing-practice-marking.cases';
 import { WO_TEST_CONFIG } from './cases/word-order.cases';
+import { TB_TEST_CONFIG } from './cases/topic-breakdown.cases';
+import { SECGEN_TEST_CONFIG } from './cases/section-generation.cases';
 
 // ============================================================================
 // REGISTER FEATURES HERE
@@ -39,6 +41,8 @@ const FEATURES: Record<string, PromptTestConfig<any, any>> = {
   wp: WP_TEST_CONFIG,
   wpm: WP_MARKING_TEST_CONFIG,
   wo: WO_TEST_CONFIG,
+  tb: TB_TEST_CONFIG,
+  secgen: SECGEN_TEST_CONFIG,
 };
 
 // ============================================================================

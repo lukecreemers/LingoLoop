@@ -1,10 +1,11 @@
 import { useEffect, useRef } from "react";
 import {
-  useLessonStore,
+  useSectionedLessonStore,
   useCurrentUnit,
+  useCurrentSection,
   useLessonProgress,
   useTotalScore,
-} from "../../stores/useLessonStore";
+} from "../../stores/useSectionedLessonStore";
 import UnitDispatcher from "./UnitDispatcher";
 import ProgressBar from "../ui/ProgressBar";
 
@@ -17,12 +18,17 @@ export default function LessonPlayer({
   onClose,
   onLessonComplete,
 }: LessonPlayerProps) {
-  const status = useLessonStore((s) => s.status);
-  const nextUnit = useLessonStore((s) => s.nextUnit);
-  const recordResult = useLessonStore((s) => s.recordResult);
-  const startLesson = useLessonStore((s) => s.startLesson);
+  const status = useSectionedLessonStore((s) => s.status);
+  const nextUnit = useSectionedLessonStore((s) => s.nextUnit);
+  const recordResult = useSectionedLessonStore((s) => s.recordResult);
+  const startLesson = useSectionedLessonStore((s) => s.startLesson);
+  const lessonData = useSectionedLessonStore((s) => s.lessonData);
+  const currentSectionIndex = useSectionedLessonStore(
+    (s) => s.currentSectionIndex
+  );
 
   const currentUnit = useCurrentUnit();
+  const currentSection = useCurrentSection();
   const progress = useLessonProgress();
   const { score, total } = useTotalScore();
 
@@ -149,6 +155,13 @@ export default function LessonPlayer({
           <div className="flex-1">
             <ProgressBar current={progress.current} total={progress.total} />
           </div>
+
+          {/* Section indicator */}
+          {lessonData && lessonData.sections.length > 1 && (
+            <div className="text-xs font-bold tracking-widest uppercase text-zinc-400 shrink-0">
+              Section {currentSectionIndex + 1}/{lessonData.sections.length}
+            </div>
+          )}
 
           {/* Score */}
           {total > 0 && (

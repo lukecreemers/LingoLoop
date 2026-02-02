@@ -7,7 +7,7 @@ import { z } from 'zod';
 export const ExplainWrongInputSchema = z.object({
   unitType: z
     .string()
-    .describe('The type of exercise (e.g., "fill in the blanks", "translation")'),
+    .describe('The type of exercise (e.g., "fill_in_blanks", "translation")'),
   context: z
     .string()
     .describe('The exercise context (sentence, question, etc.)'),

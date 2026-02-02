@@ -40,7 +40,7 @@ export default function UnitDispatcher({
         />
       );
 
-    case "fill in the blanks":
+    case "fill_in_blanks":
       return (
         <FillInBlanks
           data={unit.output}
@@ -49,7 +49,7 @@ export default function UnitDispatcher({
         />
       );
 
-    case "write in the blanks":
+    case "write_in_blanks":
       return (
         <WriteInBlanks
           data={unit.output}
@@ -58,7 +58,7 @@ export default function UnitDispatcher({
         />
       );
 
-    case "word meaning match":
+    case "word_match":
       return (
         <WordMeaningMatch
           data={unit.output}
@@ -85,7 +85,7 @@ export default function UnitDispatcher({
         />
       );
 
-    case "writing practice":
+    case "writing_practice":
       return (
         <WritingPractice
           data={unit.output}
@@ -94,7 +94,7 @@ export default function UnitDispatcher({
         />
       );
 
-    case "word order":
+    case "word_order":
       return (
         <WordOrder
           data={unit.output}

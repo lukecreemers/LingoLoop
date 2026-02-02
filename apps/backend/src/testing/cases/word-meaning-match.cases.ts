@@ -3,39 +3,45 @@ import type { PromptTestConfig, TestCase } from '../prompt-tester';
 import { ModelConfig } from '../test.types';
 
 // ============================================================================
-// INPUT TYPE
+// INPUT TYPE - Simplified to just instructions + context
 // ============================================================================
 
 export interface WMMInputs extends Record<string, string | number | string[]> {
   userLevel: string;
-  matchType: string;
-  theme: string;
-  pairCount: number;
-  distractorCount: number;
-  userWordList: string[];
+  targetLanguage: string;
+  instructions: string;
 }
 
 // ============================================================================
-// PROMPT TEMPLATE
+// PROMPT TEMPLATE - All details come from instructions
 // ============================================================================
 
 export const WMM_PROMPT_TEMPLATE = `
-Create a "Match the Columns" exercise for a {{userLevel}} Spanish student.
+### TASK
+Create a "Match the Columns" exercise for a {{userLevel}} {{targetLanguage}} student.
 
-Match Type: {{matchType}}
-Theme: {{theme}}
-Number of correct pairs: {{pairCount}}
-Number of distractors: {{distractorCount}}
+### INSTRUCTIONS (contains all exercise specifications)
+{{instructions}}
 
-The student is also reviewing these words: {{userWordList}}. If any fit naturally into the exercise, include them.
+### LEVEL DEFAULTS (use if not specified in instructions)
+- **Beginner:** 4-5 pairs, 2 distractors
+- **Intermediate:** 6-8 pairs, 2-3 distractors
+- **Advanced:** 8-10 pairs, 3 distractors
 
 ### CONSTRAINTS (CRITICAL)
-1. **Column Labels:** Provide clear labels for Column A and Column B that describe what each column contains.
-2. **Unique Matches:** Each item in Column A must have exactly ONE correct match in Column B. No ambiguity.
-3. **Distractors:** Add {{distractorCount}} plausible but INCORRECT items to Column B. They must fit the theme but NOT match any Column A item.
-4. **Difficulty:** Distractors should be "near-misses" that test understanding, not random unrelated words.
+1. **Column Labels:** Provide clear labels for Column A and Column B describing what each contains.
+2. **Unique Matches:** Each Column A item has exactly ONE correct match in Column B. No ambiguity.
+3. **Distractors:** Extra items in Column B that fit the theme but don't match any Column A item.
+4. **Difficulty:** Distractors should be "near-misses" that test understanding, not random words.
 5. **Balanced Length:** Items in each column should be roughly similar in length/complexity.
 6. **Clear Instruction:** Provide a concise instruction explaining the matching task.
+
+### OUTPUT FORMAT
+Return JSON with "exercises" array. Each exercise has:
+- columnLabels: { a: "Label A", b: "Label B" }
+- pairs: Array of [columnA, columnB] tuples (correct matches)
+- distractors: Array of extra Column B items with no match
+- instruction: Brief instruction for the user
 `.trim();
 
 // ============================================================================
@@ -43,176 +49,34 @@ The student is also reviewing these words: {{userWordList}}. If any fit naturall
 // ============================================================================
 
 export const WMM_TEST_CASES: TestCase<WMMInputs>[] = [
-  // --------------------------------------------------------------------------
-  // BEGINNER: Sparse Filtering
-  // --------------------------------------------------------------------------
   {
-    name: 'Beginner - Verb Infinitive to English',
-    description:
-      'AI must filter verbs from a list containing nouns and adjectives.',
+    name: 'Beginner - Verb to Translation',
+    description: 'Match Spanish infinitives to English meanings.',
     inputs: {
       userLevel: 'beginner',
-      matchType: 'Spanish Infinitive → English Translation',
-      theme: 'Common -ar verbs',
-      pairCount: 5,
-      distractorCount: 2,
-      // Sparse: Mix of verbs, nouns, and adjectives. AI must pick only the verbs.
-      userWordList: [
-        'hablar',
-        'casa',
-        'trabajar',
-        'azul',
-        'estudiar',
-        'libro',
-        'caminar',
-        'perro',
-        'cocinar',
-        'feliz',
-      ],
+      targetLanguage: 'Spanish',
+      instructions:
+        'Create a matching exercise: Spanish infinitive → English translation. Theme: common -ar verbs (hablar, trabajar, estudiar, caminar, cocinar). 5 pairs with 2 distractors (other English verbs that could confuse).',
     },
   },
   {
-    name: 'Beginner - Noun to Article',
-    description: 'AI must identify nouns and their genders from a sparse list.',
-    inputs: {
-      userLevel: 'beginner',
-      matchType: 'Spanish Noun → Correct Article (el/la)',
-      theme: 'Household objects and their gender',
-      pairCount: 5,
-      distractorCount: 2,
-      // Sparse: AI needs to ignore the verbs 'comer' and 'leer' to focus on nouns.
-      userWordList: [
-        'mesa',
-        'comer',
-        'libro',
-        'silla',
-        'leer',
-        'ventana',
-        'verde',
-        'teléfono',
-        'casa',
-      ],
-    },
-  },
-
-  // --------------------------------------------------------------------------
-  // INTERMEDIATE: Categorical Selection
-  // --------------------------------------------------------------------------
-  {
-    name: 'Intermediate - Ser vs Estar Context',
-    description: 'AI must match specific concepts to the correct verb logic.',
+    name: 'Intermediate - Ser vs Estar Contexts',
+    description: 'Match context descriptions to correct verb.',
     inputs: {
       userLevel: 'intermediate',
-      matchType: 'Context Description → Correct Verb (Ser or Estar)',
-      theme: 'Permanent vs temporary states',
-      pairCount: 5,
-      distractorCount: 2,
-      // Sparse: Mix of categories. AI must derive "profesión" or "ubicación" from these.
-      userWordList: [
-        'médico',
-        'estoy',
-        'madrid',
-        'inteligente',
-        'cansado',
-        'triste',
-        'español',
-        'actual',
-      ],
+      targetLanguage: 'Spanish',
+      instructions:
+        'Create a matching exercise: Context/Situation → Correct verb (Ser or Estar). 6 pairs. Contexts should clearly trigger one verb (profession, origin for Ser; location, emotion, temporary state for Estar). 2 distractors (ambiguous contexts).',
     },
   },
-  {
-    name: 'Intermediate - Preterite vs Imperfect',
-    description: 'AI filters time expressions from general vocabulary.',
-    inputs: {
-      userLevel: 'intermediate',
-      matchType: 'Time Expression → Tense (Preterite or Imperfect)',
-      theme: 'Past tense trigger phrases',
-      pairCount: 5,
-      distractorCount: 2,
-      // Sparse: Only half the list are actually time triggers.
-      userWordList: [
-        'ayer',
-        'ventana',
-        'siempre',
-        'lograr',
-        'de repente',
-        'rincón',
-        'cada día',
-        'extraño',
-        'una vez',
-      ],
-    },
-  },
-  {
-    name: 'Intermediate - False Cognates',
-    description:
-      'AI must pick actual false cognates out of a list of regular words.',
-    inputs: {
-      userLevel: 'intermediate',
-      matchType: 'Spanish Word → Actual English Meaning (NOT the cognate)',
-      theme: 'Common false cognates',
-      pairCount: 5,
-      distractorCount: 3,
-      // Sparse: Includes real cognates like 'doctor' to see if AI gets confused.
-      userWordList: [
-        'embarazada',
-        'doctor',
-        'actual',
-        'hospital',
-        'realizar',
-        'soportar',
-        'fruta',
-        'éxito',
-      ],
-    },
-  },
-
-  // --------------------------------------------------------------------------
-  // ADVANCED: Conceptual Nuance
-  // --------------------------------------------------------------------------
   {
     name: 'Advanced - Subjunctive Triggers',
-    description: 'AI selects triggers and ignores general advanced vocabulary.',
+    description: 'Match trigger phrases to required mood.',
     inputs: {
       userLevel: 'advanced',
-      matchType: 'Trigger Phrase → Mood Required (Indicative/Subjunctive)',
-      theme: 'Mood selection after conjunctions and expressions',
-      pairCount: 6,
-      distractorCount: 2,
-      // Sparse: AI must identify the "Triggers" specifically.
-      userWordList: [
-        'ojalá',
-        'clavo',
-        'dudo que',
-        'lengua',
-        'es obvio que',
-        'pelo',
-        'cuando',
-        'aunque',
-        'claro',
-      ],
-    },
-  },
-  {
-    name: 'Advanced - Idiomatic Expressions',
-    description: 'AI must identify idioms from a list of literal words.',
-    inputs: {
-      userLevel: 'advanced',
-      matchType: 'Spanish Idiom → English Equivalent Meaning',
-      theme: 'Common idiomatic expressions',
-      pairCount: 5,
-      distractorCount: 3,
-      // Sparse: AI must distinguish between idioms and their component words.
-      userWordList: [
-        'pelo',
-        'tomar el pelo',
-        'clavo',
-        'dar en el clavo',
-        'pata',
-        'meter la pata',
-        'ojo',
-        'costar un ojo',
-      ],
+      targetLanguage: 'Spanish',
+      instructions:
+        'Create a matching exercise: Trigger phrase → Mood required (Indicative/Subjunctive). Include phrases like "ojalá", "dudo que", "es obvio que", "cuando" (future), "aunque" (concessive). 8 pairs with 3 distractors.',
     },
   },
 ];
@@ -227,11 +91,6 @@ export const WMM_MODELS: ModelConfig[] = [
     model: 'claude-haiku-4-5',
     temperature: 0.7,
   },
-  // {
-  //   provider: 'anthropic' as const,
-  //   model: 'claude-sonnet-4-5',
-  //   temperature: 0.7,
-  // },
 ];
 
 // ============================================================================

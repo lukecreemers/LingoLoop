@@ -1,58 +1,111 @@
 import { useState } from "react";
 import "./App.css";
-import type { CompiledLesson } from "@shared";
+import type { SectionedLesson } from "@shared";
 import { LessonPlayer, LessonCreator } from "./components/lesson";
-import { useLessonStore } from "./stores/useLessonStore";
+import { useSectionedLessonStore } from "./stores/useSectionedLessonStore";
 
-// Demo lesson data for testing the lesson player
-const demoLessonData: CompiledLesson = {
-  units: [
+// Demo lesson data for testing the lesson player (now in sectioned format)
+const demoLessonData: SectionedLesson = {
+  input: {
+    instructions: "Learn basic Spanish introductions and greetings",
+    userLevel: "beginner",
+    targetLanguage: "Spanish",
+    nativeLanguage: "English",
+  },
+  sectionInstructions: [
+    "Section 1: Introduction to Spanish greetings with a sample conversation and vocabulary",
+    "Section 2: Practice using greeting phrases with exercises",
+  ],
+  sections: [
     {
-      type: "flashcard",
-      plan: {
-        type: "flashcard",
-        instructions: "Basic greeting vocabulary for introductions",
-        cardCount: 6,
-      },
-      output: {
-        theme: "Greetings & Introductions",
-        cards: [
-          {
-            term: "Hola",
-            definition: "Hello / Hi",
-            example: "¡Hola! ¿Cómo estás?",
-            exampleTranslation: "Hello! How are you?",
+      sectionInstruction:
+        "Section 1: Introduction to Spanish greetings with a sample conversation and vocabulary",
+      sectionIndex: 0,
+      unitPlans: [
+        {
+          type: "conversation",
+          instructions:
+            "Create a conversation about two people meeting and introducing themselves.",
+          conversationLength: "medium",
+        },
+        {
+          type: "flashcard",
+          instructions: "Basic greeting vocabulary for introductions",
+          cardCount: 6,
+        },
+        {
+          type: "explanation",
+          instructions:
+            "Explain how to introduce yourself in Spanish, including key phrases like 'Me llamo', 'Soy de', and 'Mucho gusto'. Cover the reflexive verb 'llamarse'.",
+        },
+      ],
+      units: [
+        {
+          type: "conversation",
+          plan: {
+            type: "conversation",
+            instructions:
+              "Create a conversation about two people meeting and introducing themselves.",
+            conversationLength: "medium",
           },
-          {
-            term: "Me llamo",
-            definition: "My name is (lit. I call myself)",
-            example: "Me llamo María.",
-            exampleTranslation: "My name is María.",
+          output: {
+            characters: [
+              { name: "María", age: "adult", gender: "female" },
+              { name: "Juan", age: "adult", gender: "male" },
+            ],
+            conversation: `**María:** ¡Hola! Me llamo María. ¿Cómo te llamas?
+**Juan:** Hola, María. Me llamo Juan. Mucho gusto.
+**María:** Mucho gusto, Juan. Soy de México. ¿De dónde eres tú?
+**Juan:** Soy de España, de Barcelona. ¿Vives aquí en la ciudad?
+**María:** Sí, vivo aquí desde hace tres años. Trabajo en una empresa de tecnología.
+**Juan:** ¡Qué interesante! Yo soy profesor de español en la universidad.`,
           },
-          {
-            term: "Mucho gusto",
-            definition: "Nice to meet you (lit. Much pleasure)",
-            example: "Mucho gusto, Juan.",
-            exampleTranslation: "Nice to meet you, Juan.",
+        },
+        {
+          type: "flashcard",
+          plan: {
+            type: "flashcard",
+            instructions: "Basic greeting vocabulary for introductions",
+            cardCount: 6,
           },
-          {
-            term: "¿Cómo te llamas?",
-            definition: "What's your name? (informal)",
-            example: "¡Hola! ¿Cómo te llamas?",
-            exampleTranslation: "Hello! What's your name?",
+          output: {
+            theme: "Greetings & Introductions",
+            cards: [
+              {
+                term: "Hola",
+                definition: "Hello / Hi",
+                example: "¡Hola! ¿Cómo estás?",
+                exampleTranslation: "Hello! How are you?",
+              },
+              {
+                term: "Me llamo",
+                definition: "My name is (lit. I call myself)",
+                example: "Me llamo María.",
+                exampleTranslation: "My name is María.",
+              },
+              {
+                term: "Mucho gusto",
+                definition: "Nice to meet you (lit. Much pleasure)",
+                example: "Mucho gusto, Juan.",
+                exampleTranslation: "Nice to meet you, Juan.",
+              },
+              {
+                term: "¿Cómo te llamas?",
+                definition: "What's your name? (informal)",
+                example: "¡Hola! ¿Cómo te llamas?",
+                exampleTranslation: "Hello! What's your name?",
+              },
+            ],
           },
-        ],
-      },
-    },
-    {
-      type: "explanation",
-      plan: {
-        type: "explanation",
-        instructions:
-          "Explain how to introduce yourself in Spanish, including key phrases like 'Me llamo', 'Soy de', and 'Mucho gusto'. Cover the reflexive verb 'llamarse'.",
-      },
-      output: {
-        explanation: `## Introducing Yourself in Spanish
+        },
+        {
+          type: "explanation",
+          plan: {
+            type: "explanation",
+            instructions:
+              "Explain how to introduce yourself in Spanish, including key phrases like 'Me llamo', 'Soy de', and 'Mucho gusto'. Cover the reflexive verb 'llamarse'.",
+          },
+          output: `## Introducing Yourself in Spanish
 
 When meeting someone new in Spanish, you'll need to know how to say your name and ask about theirs.
 
@@ -79,165 +132,171 @@ Tú te llamas Juan
 > **A:** Mucho gusto, Juan. Soy de México. ¿Y tú?
 
 Now let's practice these phrases!`,
-      },
+        },
+      ],
     },
     {
-      type: "fill in the blanks",
-      plan: {
-        type: "fill in the blanks",
-        instructions:
-          "Practice using 'me llamo' and 'soy' for self-introduction.",
-        blankAmount: 1,
-        distractorInstructions: "Include similar verb forms as distractors.",
-        distractorCount: 3,
-      },
-      output: {
-        exercises: [
-          {
-            template: "Hola, me [*] María y soy de México.",
-            answers: ["llamo"],
-            distractors: ["llamamos", "llamar", "soy"],
+      sectionInstruction:
+        "Section 2: Practice using greeting phrases with exercises",
+      sectionIndex: 1,
+      unitPlans: [
+        {
+          type: "fill_in_blanks",
+          instructions:
+            "Practice using 'me llamo' and 'soy' for self-introduction.",
+        },
+        {
+          type: "word_match",
+          instructions:
+            "Match Spanish greetings to English. Theme: Basic greetings. 3 pairs, 2 distractors.",
+        },
+        {
+          type: "word_order",
+          instructions: "Daily routine sentences with reflexive verbs",
+        },
+        {
+          type: "write_in_blanks",
+          instructions:
+            "Practice conjugating verbs in context with daily activities.",
+        },
+        {
+          type: "writing_practice",
+          instructions:
+            "Practice introducing yourself and describing your daily routine",
+        },
+      ],
+      units: [
+        {
+          type: "fill_in_blanks",
+          plan: {
+            type: "fill_in_blanks",
+            instructions:
+              "Practice using 'me llamo' and 'soy' for self-introduction.",
           },
-          {
-            template: "Yo [*] ingeniero y trabajo en una oficina.",
-            answers: ["soy"],
-            distractors: ["somos", "ser", "estoy"],
-          },
-        ],
-      },
-    },
-    {
-      type: "word meaning match",
-      plan: {
-        type: "word meaning match",
-        matchType: "Spanish Word → English Translation",
-        theme: "Basic greetings and common phrases",
-        pairCount: 3,
-        distractorCount: 2,
-      },
-      output: {
-        exercises: [
-          {
-            columnLabels: {
-              a: "Spanish",
-              b: "English",
-            },
-            pairs: [
-              ["Hola", "Hello"],
-              ["Gracias", "Thank you"],
-              ["Buenos días", "Good morning"],
-            ],
-            distractors: ["Goodbye", "Good night"],
-            instruction:
-              "Match the Spanish words with their English translations.",
-          },
-        ],
-      },
-    },
-    {
-      type: "word order",
-      plan: {
-        type: "word order",
-        instructions: "Daily routine sentences with reflexive verbs",
-        sentenceCount: 3,
-      },
-      output: {
-        sentences: [
-          {
-            sentence: "Me levanto a las siete.",
-            translation: "I get up at seven.",
-          },
-          {
-            sentence: "¿Dónde vives tú?",
-            translation: "Where do you live?",
-          },
-          {
-            sentence: "El gato negro duerme.",
-            translation: "The black cat sleeps.",
-          },
-        ],
-      },
-    },
-    {
-      type: "write in the blanks",
-      plan: {
-        type: "write in the blanks",
-        instructions:
-          "Practice conjugating verbs in context with daily activities.",
-        blankAmount: 1,
-      },
-      output: {
-        exercises: [
-          {
-            template: "Yo [*] con mis amigos todos los días.",
-            blanks: [
+          output: {
+            exercises: [
               {
-                correctAnswer: "hablo",
-                clue: "(hablar)",
-                acceptedAlternates: [],
+                template: "Hola, me [*] María y soy de México.",
+                answers: ["llamo"],
+                distractors: ["llamamos", "llamar", "soy"],
+              },
+              {
+                template: "Yo [*] ingeniero y trabajo en una oficina.",
+                answers: ["soy"],
+                distractors: ["somos", "ser", "estoy"],
               },
             ],
           },
-          {
-            template: "María [*] en una empresa grande.",
-            blanks: [
+        },
+        {
+          type: "word_match",
+          plan: {
+            type: "word_match",
+            instructions:
+              "Match Spanish greetings to English. Theme: Basic greetings. 3 pairs, 2 distractors.",
+          },
+          output: {
+            exercises: [
               {
-                correctAnswer: "trabaja",
-                clue: "(trabajar)",
-                acceptedAlternates: [],
+                columnLabels: {
+                  a: "Spanish",
+                  b: "English",
+                },
+                pairs: [
+                  ["Hola", "Hello"],
+                  ["Gracias", "Thank you"],
+                  ["Buenos días", "Good morning"],
+                ],
+                distractors: ["Goodbye", "Good night"],
+                instruction:
+                  "Match the Spanish words with their English translations.",
               },
             ],
           },
-        ],
-      },
-    },
-    {
-      type: "conversation",
-      plan: {
-        type: "conversation",
-        instructions:
-          "Create a conversation about two people meeting and introducing themselves.",
-        conversationLength: "medium",
-      },
-      output: {
-        characters: [
-          { name: "María", age: "adult", gender: "female" },
-          { name: "Juan", age: "adult", gender: "male" },
-        ],
-        conversation: `**María:** ¡Hola! Me llamo María. ¿Cómo te llamas?
-**Juan:** Hola, María. Me llamo Juan. Mucho gusto.
-**María:** Mucho gusto, Juan. Soy de México. ¿De dónde eres tú?
-**Juan:** Soy de España, de Barcelona. ¿Vives aquí en la ciudad?
-**María:** Sí, vivo aquí desde hace tres años. Trabajo en una empresa de tecnología.
-**Juan:** ¡Qué interesante! Yo soy profesor de español en la universidad.`,
-      },
-    },
-    {
-      type: "writing practice",
-      plan: {
-        type: "writing practice",
-        instructions:
-          "Practice introducing yourself and describing your daily routine",
-        promptCount: 2,
-      },
-      output: {
-        topic: "Introductions & Daily Life",
-        prompts: [
-          {
-            prompt: "Preséntate. ¿Cómo te llamas? ¿De dónde eres? ¿Qué haces?",
-            promptTranslation:
-              "Introduce yourself. What is your name? Where are you from? What do you do?",
-            hints: ["Me llamo...", "Soy de...", "Trabajo como..."],
-            expectedLength: "medium",
+        },
+        {
+          type: "word_order",
+          plan: {
+            type: "word_order",
+            instructions: "Daily routine sentences with reflexive verbs",
           },
-          {
-            prompt: "¿Qué haces por la mañana normalmente?",
-            promptTranslation: "What do you normally do in the morning?",
-            hints: ["despertarse", "desayunar", "ducharse", "ir al trabajo"],
-            expectedLength: "medium",
+          output: {
+            sentences: [
+              {
+                sentence: "Me levanto a las siete.",
+                translation: "I get up at seven.",
+              },
+              {
+                sentence: "¿Dónde vives tú?",
+                translation: "Where do you live?",
+              },
+              {
+                sentence: "El gato negro duerme.",
+                translation: "The black cat sleeps.",
+              },
+            ],
           },
-        ],
-      },
+        },
+        {
+          type: "write_in_blanks",
+          plan: {
+            type: "write_in_blanks",
+            instructions:
+              "Practice conjugating verbs in context with daily activities.",
+          },
+          output: {
+            exercises: [
+              {
+                template: "Yo [*] con mis amigos todos los días.",
+                blanks: [
+                  {
+                    correctAnswer: "hablo",
+                    clue: "(hablar)",
+                    acceptedAlternates: [],
+                  },
+                ],
+              },
+              {
+                template: "María [*] en una empresa grande.",
+                blanks: [
+                  {
+                    correctAnswer: "trabaja",
+                    clue: "(trabajar)",
+                    acceptedAlternates: [],
+                  },
+                ],
+              },
+            ],
+          },
+        },
+        {
+          type: "writing_practice",
+          plan: {
+            type: "writing_practice",
+            instructions:
+              "Practice introducing yourself and describing your daily routine",
+          },
+          output: {
+            topic: "Introductions & Daily Life",
+            prompts: [
+              {
+                prompt:
+                  "Preséntate. ¿Cómo te llamas? ¿De dónde eres? ¿Qué haces?",
+                promptTranslation:
+                  "Introduce yourself. What is your name? Where are you from? What do you do?",
+                hints: ["Me llamo...", "Soy de...", "Trabajo como..."],
+                expectedLength: "medium",
+              },
+              {
+                prompt: "¿Qué haces por la mañana normalmente?",
+                promptTranslation: "What do you normally do in the morning?",
+                hints: ["despertarse", "desayunar", "ducharse", "ir al trabajo"],
+                expectedLength: "medium",
+              },
+            ],
+          },
+        },
+      ],
     },
   ],
 };
@@ -246,8 +305,8 @@ type AppView = "home" | "creator" | "player";
 
 function App() {
   const [view, setView] = useState<AppView>("home");
-  const setLesson = useLessonStore((s) => s.setLesson);
-  const reset = useLessonStore((s) => s.reset);
+  const setLesson = useSectionedLessonStore((s) => s.setLesson);
+  const reset = useSectionedLessonStore((s) => s.reset);
 
   const handleStartDemo = () => {
     setLesson(demoLessonData);
