@@ -27,7 +27,7 @@ import { FC_PROMPT_TEMPLATE } from 'src/testing/cases/flashcard.cases';
 import { WP_PROMPT_TEMPLATE } from 'src/testing/cases/writing-practice.cases';
 import { WO_PROMPT_TEMPLATE } from 'src/testing/cases/word-order.cases';
 import type { LessonContext } from './lesson.context';
-import { DEFAULT_WORD_LIST, DEFAULT_GRAMMAR_LIST } from './lesson.context';
+import { formatUserProfile, TEST_USER_PROFILE } from './lesson.context';
 
 // Retry configuration
 const MAX_RETRIES = 3;
@@ -65,9 +65,10 @@ export class UnitFactoryService {
         // Explanation doesn't need structured output - just get raw text
         if (unit.type === 'explanation') {
           const response = await this.llm.invoke(prompt);
-          output = typeof response.content === 'string' 
-            ? response.content 
-            : String(response.content);
+          output =
+            typeof response.content === 'string'
+              ? response.content
+              : String(response.content);
         } else {
           // All other unit types use structured output
           const schema = this.getSchemaForType(unit.type);
@@ -154,8 +155,7 @@ export class UnitFactoryService {
       userLevel: input.userLevel,
       targetLanguage: input.targetLanguage ?? 'Spanish',
       nativeLanguage: input.nativeLanguage ?? 'English',
-      userWordList: DEFAULT_WORD_LIST,
-      userGrammarList: DEFAULT_GRAMMAR_LIST,
+      userProfile: TEST_USER_PROFILE,
     };
 
     const avoidContext = this.buildAvoidContext(input.previousOutput);
@@ -167,20 +167,34 @@ export class UnitFactoryService {
   // ============================================================================
 
   /**
-   * Build the prompt for a unit based on its type
+   * Build the prompt for a unit based on its type (public for debug purposes)
    */
-  private buildUnitPrompt(
+  buildUnitPrompt(
     unit: LessonPlanUnit,
     context: LessonContext,
     avoidContext?: string,
   ): string {
     const template = this.getTemplateForType(unit.type);
+    const userProfileText = formatUserProfile(context.userProfile);
+
+    // Build lesson plan context section if available
+    const lessonPlanContext = context.lessonPlanContext
+      ? `### LESSON CONTEXT
+This The lesson is up to this unit now. Here is the full lesson plan up to and including this unit:
+
+${context.lessonPlanContext}
+
+You are generating content for the current unit. Use the above context to maintain coherence with the lesson flow, but focus on the specific instructions below.
+`
+      : '';
 
     let prompt = this.buildPrompt(template, {
       userLevel: context.userLevel,
       targetLanguage: context.targetLanguage,
       nativeLanguage: context.nativeLanguage,
       instructions: unit.instructions,
+      userProfile: userProfileText,
+      lessonPlanContext,
     });
 
     if (avoidContext) {
@@ -240,7 +254,9 @@ export class UnitFactoryService {
       case 'word_order':
         return WOOutputSchema;
       case 'explanation':
-        throw new Error('Explanation uses raw text output, not structured output');
+        throw new Error(
+          'Explanation uses raw text output, not structured output',
+        );
       default:
         throw new Error(`Unknown unit type: ${type}`);
     }

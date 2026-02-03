@@ -3,6 +3,8 @@ import "./App.css";
 import type { SectionedLesson } from "@shared";
 import { LessonPlayer, LessonCreator } from "./components/lesson";
 import { useSectionedLessonStore } from "./stores/useSectionedLessonStore";
+import { useRoadmapStore } from "./stores/useRoadmapStore";
+import Roadmap from "./features/roadmap/Roadmap";
 
 // Demo lesson data for testing the lesson player (now in sectioned format)
 const demoLessonData: SectionedLesson = {
@@ -304,12 +306,16 @@ Now let's practice these phrases!`,
   ],
 };
 
-type AppView = "home" | "creator" | "player";
+type AppView = "home" | "creator" | "player" | "roadmap" | "roadmap-lesson";
 
 function App() {
   const [view, setView] = useState<AppView>("home");
+
   const setLesson = useSectionedLessonStore((s) => s.setLesson);
   const reset = useSectionedLessonStore((s) => s.reset);
+  const setStatus = useSectionedLessonStore((s) => s.setStatus);
+
+  const roadmapStore = useRoadmapStore();
 
   const handleStartDemo = () => {
     setLesson(demoLessonData);
@@ -329,6 +335,93 @@ function App() {
     setView("home");
   };
 
+  const handleOpenRoadmap = () => {
+    setView("roadmap");
+  };
+
+  const handleRoadmapLessonSelect = async (
+    monthIndex: number,
+    weekIndex: number,
+    lessonIndex: number
+  ) => {
+    // Store the selection
+    roadmapStore.selectLesson(monthIndex, weekIndex, lessonIndex);
+
+    // Build context for new structured lesson endpoint
+    const lessonContext = roadmapStore.buildStructuredLessonContext();
+    if (!lessonContext) return;
+
+    // Show loading state
+    setStatus("generating");
+    setView("roadmap-lesson");
+
+    try {
+      const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:3000";
+      // Call the new structured lesson API
+      const response = await fetch(`${apiUrl}/lessons/create-structured`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(lessonContext),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to generate lesson");
+      }
+
+      const result = await response.json();
+      // Response is { lesson, pipeline } or { data: { lesson, pipeline } }
+      const data = result.data ?? result;
+      
+      // Log pipeline debug info to console
+      if (data.pipeline) {
+        console.group("🔧 Lesson Pipeline Debug");
+        console.log("📝 Structure Prompt:", data.pipeline.structurePrompt);
+        console.log("📄 Raw XML Response:", data.pipeline.rawXmlResponse);
+        console.log("🏷️ Extracted XML:", data.pipeline.extractedXml);
+        console.log("📦 Parsed Units:", data.pipeline.parsedUnits);
+        console.group("⚙️ Unit Executions");
+        data.pipeline.unitExecutions?.forEach((unit: { unitIndex: number; unitType: string; unitName: string; prompt: string; output: unknown }) => {
+          console.group(`Unit ${unit.unitIndex + 1}: ${unit.unitName} (${unit.unitType})`);
+          console.log("Prompt:", unit.prompt);
+          console.log("Output:", unit.output);
+          console.groupEnd();
+        });
+        console.groupEnd();
+        console.groupEnd();
+      }
+      
+      setLesson(data.lesson ?? data);
+    } catch (error) {
+      console.error("Failed to generate lesson:", error);
+      setStatus("idle");
+      setView("roadmap");
+    }
+  };
+
+  const handleRoadmapLessonComplete = () => {
+    // Mark the lesson as complete
+    const selectedData = roadmapStore.getSelectedLessonData();
+    if (selectedData) {
+      roadmapStore.markLessonComplete(selectedData.lesson.globalLessonIndex);
+    }
+
+    // Go back to roadmap
+    roadmapStore.clearSelectedLesson();
+    reset();
+    setView("roadmap");
+  };
+
+  // Reset the roadmap to generate a new curriculum
+  const handleResetRoadmap = () => {
+    roadmapStore.reset();
+  };
+
+  const handleBackToRoadmap = () => {
+    roadmapStore.clearSelectedLesson();
+    reset();
+    setView("roadmap");
+  };
+
   // Render based on current view
   if (view === "creator") {
     return <LessonCreator onLessonCreated={handleLessonCreated} />;
@@ -340,6 +433,47 @@ function App() {
         <LessonPlayer
           onClose={handleClose}
           onLessonComplete={handleClose}
+        />
+      </div>
+    );
+  }
+
+  if (view === "roadmap") {
+    return (
+      <div className="min-h-screen">
+        {/* Back button */}
+        <div className="fixed top-4 left-4 z-20">
+          <button
+            onClick={handleClose}
+            className="px-4 py-2 bg-white border-2 border-black font-bold text-sm hover:bg-zinc-100 transition-colors flex items-center gap-2"
+          >
+            <svg
+              className="w-4 h-4"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M15 19l-7-7 7-7"
+              />
+            </svg>
+            Back
+          </button>
+        </div>
+        <Roadmap onLessonSelect={handleRoadmapLessonSelect} />
+      </div>
+    );
+  }
+
+  if (view === "roadmap-lesson") {
+    return (
+      <div className="h-screen">
+        <LessonPlayer
+          onClose={handleBackToRoadmap}
+          onLessonComplete={handleRoadmapLessonComplete}
         />
       </div>
     );
@@ -359,6 +493,15 @@ function App() {
 
         {/* Actions */}
         <div className="space-y-4">
+          <button
+            onClick={handleOpenRoadmap}
+            className="w-full px-10 py-5 text-lg font-bold uppercase tracking-widest border-2 border-black
+              bg-bauhaus-green text-white hover:bg-emerald-700 bauhaus-shadow
+              transition-all duration-100 active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
+          >
+            My Roadmap
+          </button>
+
           <button
             onClick={handleCreateLesson}
             className="w-full px-10 py-5 text-lg font-bold uppercase tracking-widest border-2 border-black

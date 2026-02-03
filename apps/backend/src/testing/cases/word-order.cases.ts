@@ -17,9 +17,12 @@ export interface WOInputs extends Record<string, string | number | string[]> {
 // ============================================================================
 
 export const WO_PROMPT_TEMPLATE = `
+{{lessonPlanContext}}
 ### TASK
 Create word order exercises for a {{userLevel}} {{targetLanguage}} learner (native {{nativeLanguage}}).
 The student will see scrambled words and must arrange them in the correct order.
+
+{{userProfile}}
 
 ### INSTRUCTIONS (contains all specifications)
 {{instructions}}
@@ -34,6 +37,7 @@ The student will see scrambled words and must arrange them in the correct order.
 2. Include the translation in {{nativeLanguage}}
 3. Sentences should be varied (not repetitive patterns)
 4. Match complexity to the user's level
+5. **Personalize:** Use contexts related to the learner's interests and goals where possible
 
 ### OUTPUT FORMAT
 Return JSON with:

@@ -47,3 +47,7 @@ export * from './topic-breakdown.types';
 export * from './section-generation.types';
 export * from './sectioned-lesson.types';
 export * from './redo-section.dto';
+export * from './timeline.types';
+export * from './lesson-structure.types';
+export * from './create-structured-lesson.dto';
+export * from './curriculum.types';

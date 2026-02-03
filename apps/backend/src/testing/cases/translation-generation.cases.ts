@@ -18,13 +18,11 @@ export interface TGInputs extends Record<string, string | number | string[]> {
 // ============================================================================
 
 export const TG_PROMPT_TEMPLATE = `
+{{lessonPlanContext}}
 ### TASK
 Generate a paragraph for a {{userLevel}} student to translate. You will provide both the source text and an ideal translation.
 
-### USER CONTEXT
-- Level: {{userLevel}}
-- Learning: {{targetLanguage}}
-- Native: {{nativeLanguage}}
+{{userProfile}}
 
 ### INSTRUCTIONS (contains all specifications)
 {{instructions}}
@@ -39,6 +37,7 @@ Generate a paragraph for a {{userLevel}} student to translate. You will provide 
 2. **Natural Flow:** The paragraph should read like native speech, not disconnected sentences.
 3. **Coherent Theme:** All sentences should connect to form a unified paragraph.
 4. **Useful Practice:** Focus on structures the student needs to practice.
+5. **Personalize:** Use themes related to the learner's goals and interests where possible.
 
 ### OUTPUT FORMAT
 Return JSON with:

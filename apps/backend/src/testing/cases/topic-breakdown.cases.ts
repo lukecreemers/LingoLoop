@@ -34,6 +34,7 @@ Your only task is to just break down the topic create logical sections with extr
 ### DECONSTRUCTION STRATEGY
 Break this topic down into however many sections are necessary to cover the topic for the user of the given level. If you generate multiple sections,
 make sure to include a bridge section that combines everything taught in the previous sections.
+If the topic is super simple, just have one section.
 
 To understand how your output will be used, here is a breakdown of the future stages:
 Stage 1: Each section instruction will be passed to an activity selection agent: This agent has access to activites like explanation, fill in the blanks, writing practice, mock conversations etc.
@@ -70,7 +71,7 @@ OUTPUT:
 
 
 ### LEVEL CONSTRAINTS
-- **Beginner:** Max 2 Loops + 1 Bridge. Keep vocabulary simple.
+- **Beginner:** Max 2 sectios + (optional)1 Bridge. Keep vocabulary simple.
 - **Intermediate:** 2-3 Loops + 1 Bridge. Introduce common exceptions.
 - **Advanced:** 3-4 Loops + 1 Bridge. Focus on nuances, regionalisms, and complex synthesis.
 
@@ -89,7 +90,8 @@ export const TB_TEST_CASES: TestCase<TBInputs>[] = [
       userLevel: 'beginner',
       targetLanguage: 'Spanish',
       nativeLanguage: 'English',
-      instructions: 'Some good questions to use when on a date',
+      instructions:
+        'Introduce basic Spanish greetings and farewells: Hola, Buenos días, Buenas tardes, Buenas noches, and Adiós. Teach pronunciation with emphasis on natural intonation patterns. Include listening exercises to distinguish between formal and informal delivery. Create a reference chart with phonetic guides.',
     },
   },
   {

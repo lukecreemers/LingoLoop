@@ -17,8 +17,11 @@ export interface FIBInputs extends Record<string, string | number | string[]> {
 // ============================================================================
 
 export const FIB_PROMPT_TEMPLATE = `
+{{lessonPlanContext}}
 ### TASK
 Create "Fill in the Blank" exercises for a {{userLevel}} {{targetLanguage}} student.
+
+{{userProfile}}
 
 ### INSTRUCTIONS (contains all exercise specifications)
 {{instructions}}
@@ -35,6 +38,7 @@ Create "Fill in the Blank" exercises for a {{userLevel}} {{targetLanguage}} stud
 4. **Natural Syntax:** Sentences must sound native and natural, not robotic.
 5. **Unique Slots:** In multi-blank sentences, each answer fits only its designated slot. Answers should not be interchangeable.
 6. **Distractor Strategy:** Distractors should be "near misses" - same category but wrong for the specific context (e.g., wrong conjugation, wrong gender, similar but incorrect verb).
+7. **Personalize:** Use contexts relevant to the learner's interests and goals where possible.
 
 ### OUTPUT FORMAT
 Return JSON with "exercises" array. Each exercise has:

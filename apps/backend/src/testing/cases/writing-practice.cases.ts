@@ -17,8 +17,11 @@ export interface WPInputs extends Record<string, string | number | string[]> {
 // ============================================================================
 
 export const WP_PROMPT_TEMPLATE = `
+{{lessonPlanContext}}
 ### TASK
 Create writing practice prompts for a {{userLevel}} {{targetLanguage}} learner (native {{nativeLanguage}}).
+
+{{userProfile}}
 
 ### INSTRUCTIONS (contains all specifications)
 {{instructions}}
@@ -33,6 +36,7 @@ Create writing practice prompts for a {{userLevel}} {{targetLanguage}} learner (
 2. Include helpful hints (useful vocabulary or structures)
 3. Match complexity to the user's level
 4. Prompts should encourage creative but structured responses
+5. **Personalize:** Create prompts related to the learner's interests and goals where possible
 
 ### OUTPUT FORMAT
 Return JSON with:

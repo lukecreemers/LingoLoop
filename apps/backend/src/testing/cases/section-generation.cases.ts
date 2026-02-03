@@ -125,6 +125,8 @@ Follow this learning flow:
 - Writing: 3 prompts, longer responses
 - Word order: 6-8 complex sentences
 
+A section should typically only have 3-4 units, unless it is a bridging section where it is allowed to have more (max 5).
+
 ### RULES
 - Be SPECIFIC in your instructions - include ALL required details from the requirements above
 - Each unit's instructions must be self-contained (sub-agent sees ONLY the instructions)

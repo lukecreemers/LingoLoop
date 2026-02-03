@@ -4,6 +4,7 @@ import { LessonsService } from './lessons.service';
 import { UnitFactoryService } from './unit-factory.service';
 import { SectionedLessonsService } from './sectioned-lessons.service';
 import { LessonDebugService } from './lesson-debug.service';
+import { StructuredLessonService } from './structured-lesson.service';
 
 @Module({
   controllers: [LessonsController],
@@ -12,6 +13,7 @@ import { LessonDebugService } from './lesson-debug.service';
     UnitFactoryService,
     SectionedLessonsService,
     LessonDebugService,
+    StructuredLessonService,
   ],
 })
 export class LessonsModule {}

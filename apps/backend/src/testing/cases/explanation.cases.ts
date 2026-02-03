@@ -17,9 +17,12 @@ export interface EXInputs extends Record<string, string | number | string[]> {
 // ============================================================================
 
 export const EX_PROMPT_TEMPLATE = `
+{{lessonPlanContext}}
 ### TASK
 Generate a clear, pedagogical explanation in English about {{targetLanguage}} for a {{userLevel}} student.
 The goal is to explain a specific linguistic concept so the student can apply it in upcoming exercises.
+
+{{userProfile}}
 
 ### INSTRUCTIONS (contains the topic and specifications)
 {{instructions}}
@@ -34,6 +37,7 @@ The goal is to explain a specific linguistic concept so the student can apply it
 2. **Clarity:** Start with a high-level summary, then specific rules/examples.
 3. **Tone:** Encouraging, expert, and concise. No fluff.
 4. **Length:** Appropriate to the complexity - beginners get shorter explanations.
+5. **Personalize:** Use examples relevant to the learner's goals and interests where possible.
 
 Write the explanation directly in Markdown format.
 `.trim();

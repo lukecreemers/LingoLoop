@@ -17,8 +17,11 @@ export interface WMMInputs extends Record<string, string | number | string[]> {
 // ============================================================================
 
 export const WMM_PROMPT_TEMPLATE = `
+{{lessonPlanContext}}
 ### TASK
 Create a "Match the Columns" exercise for a {{userLevel}} {{targetLanguage}} student.
+
+{{userProfile}}
 
 ### INSTRUCTIONS (contains all exercise specifications)
 {{instructions}}
@@ -35,6 +38,7 @@ Create a "Match the Columns" exercise for a {{userLevel}} {{targetLanguage}} stu
 4. **Difficulty:** Distractors should be "near-misses" that test understanding, not random words.
 5. **Balanced Length:** Items in each column should be roughly similar in length/complexity.
 6. **Clear Instruction:** Provide a concise instruction explaining the matching task.
+7. **Personalize:** Use vocabulary relevant to the learner's interests and goals where possible.
 
 ### OUTPUT FORMAT
 Return JSON with "exercises" array. Each exercise has:

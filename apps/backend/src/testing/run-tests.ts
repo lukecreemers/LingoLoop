@@ -21,6 +21,11 @@ import { WP_MARKING_TEST_CONFIG } from './cases/writing-practice-marking.cases';
 import { WO_TEST_CONFIG } from './cases/word-order.cases';
 import { TB_TEST_CONFIG } from './cases/topic-breakdown.cases';
 import { SECGEN_TEST_CONFIG } from './cases/section-generation.cases';
+import { TL_MONTH_TEST_CONFIG } from './cases/timeline-month-breakdown.cases';
+import { TL_WEEK_TEST_CONFIG } from './cases/timeline-week-breakdown.cases';
+import { TL_INITIAL_TEST_CONFIG } from './cases/timeline-initial-to-months.cases';
+import { LESSON_STRUCTURE_TEST_CONFIG } from './cases/lesson-structure.cases';
+import { CURRICULUM_TEST_CONFIG } from './cases/curriculum-generation.cases';
 
 // ============================================================================
 // REGISTER FEATURES HERE
@@ -43,6 +48,11 @@ const FEATURES: Record<string, PromptTestConfig<any, any>> = {
   wo: WO_TEST_CONFIG,
   tb: TB_TEST_CONFIG,
   secgen: SECGEN_TEST_CONFIG,
+  tlmonth: TL_MONTH_TEST_CONFIG,
+  tlweek: TL_WEEK_TEST_CONFIG,
+  tlinit: TL_INITIAL_TEST_CONFIG,
+  ls: LESSON_STRUCTURE_TEST_CONFIG,
+  curriculum: CURRICULUM_TEST_CONFIG,
 };
 
 // ============================================================================

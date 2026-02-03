@@ -17,9 +17,12 @@ export interface CGInputs extends Record<string, string | number | string[]> {
 // ============================================================================
 
 export const CG_PROMPT_TEMPLATE = `
+{{lessonPlanContext}}
 ### TASK
 Generate a conversation in {{targetLanguage}} for a {{userLevel}} student.
 Create 2 relevant characters with names, ages, and genders.
+
+{{userProfile}}
 
 ### INSTRUCTIONS (contains all specifications)
 {{instructions}}
@@ -34,6 +37,7 @@ Create 2 relevant characters with names, ages, and genders.
 2. **Natural & Authentic:** Write exactly how native speakers actually talk. No "textbook" dialogue.
 3. **Distinct Voices:** Each character should have a slightly different speech pattern.
 4. **Engaging Context:** The situation should be interesting and realistic.
+5. **Personalize:** Use scenarios relevant to the learner's goals and interests where possible.
 
 ### OUTPUT FORMAT
 Return JSON with:

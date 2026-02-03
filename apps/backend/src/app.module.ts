@@ -6,6 +6,7 @@ import { LessonsModule } from './modules/lessons/lessons.module';
 import { TranslationMarkingModule } from './modules/translation-marking/translation-marking.module';
 import { AiAssistModule } from './modules/ai-assist/ai-assist.module';
 import { TtsModule } from './modules/tts/tts.module';
+import { TimelineModule } from './modules/timeline/timeline.module';
 
 @Module({
   imports: [
@@ -14,6 +15,7 @@ import { TtsModule } from './modules/tts/tts.module';
     TranslationMarkingModule,
     AiAssistModule,
     TtsModule,
+    TimelineModule,
   ],
   controllers: [AppController],
   providers: [AppService],

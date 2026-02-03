@@ -17,9 +17,12 @@ export interface WIBInputs extends Record<string, string | number | string[]> {
 // ============================================================================
 
 export const WIB_PROMPT_TEMPLATE = `
+{{lessonPlanContext}}
 ### TASK
 Create "Write in the Blank" exercises for a {{userLevel}} {{targetLanguage}} student.
 Unlike fill-in-the-blanks, this exercise requires the student to TYPE the answer (no multiple choice).
+
+{{userProfile}}
 
 ### INSTRUCTIONS (contains all exercise specifications)
 {{instructions}}
@@ -35,6 +38,7 @@ Unlike fill-in-the-blanks, this exercise requires the student to TYPE the answer
 3. **Accepted Alternates:** For valid variations (e.g., -ra/-se subjunctive), include them in "acceptedAlternates".
 4. **Natural Syntax:** Sentences must sound native and conversational.
 5. **Blank Marker:** Use [*] to mark each blank position in the template.
+6. **Personalize:** Use contexts relevant to the learner's interests and goals where possible.
 
 ### OUTPUT FORMAT
 Return JSON with "exercises" array. Each exercise has:

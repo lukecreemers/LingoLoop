@@ -11,10 +11,12 @@ import {
 import type { SectionedLesson, CompiledSection } from 'src/shared';
 import { ZodResponse } from 'src/common/decorators/zod-response.decorator';
 import { CreateLessonDto } from 'src/shared/types/create-lesson/create-lesson.dto';
+import { CreateStructuredLessonDto } from 'src/shared/types/create-structured-lesson.dto';
 import { RedoUnitDto } from 'src/shared/types/redo-unit.dto';
 import { RedoSectionDto } from 'src/shared/types/redo-section.dto';
 import { UnitFactoryService } from './unit-factory.service';
 import { SectionedLessonsService } from './sectioned-lessons.service';
+import { StructuredLessonService } from './structured-lesson.service';
 
 @Controller('lessons')
 export class LessonsController {
@@ -22,6 +24,7 @@ export class LessonsController {
     private readonly lessonsService: LessonsService,
     private readonly unitFactoryService: UnitFactoryService,
     private readonly sectionedLessonsService: SectionedLessonsService,
+    private readonly structuredLessonService: StructuredLessonService,
   ) {}
 
   // ============================================================================
@@ -67,5 +70,17 @@ export class LessonsController {
       body.lesson,
       body.sectionIndex,
     );
+  }
+
+  // ============================================================================
+  // NEW XML-BASED STRUCTURED LESSON CREATION
+  // ============================================================================
+
+  @Post('create-structured')
+  async createStructuredLesson(
+    @Body() body: CreateStructuredLessonDto,
+  ) {
+    // Returns { lesson, pipeline } with full debug info
+    return this.structuredLessonService.createStructuredLesson(body);
   }
 }
