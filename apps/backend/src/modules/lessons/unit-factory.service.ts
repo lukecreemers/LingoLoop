@@ -180,7 +180,7 @@ export class UnitFactoryService {
     // Build lesson plan context section if available
     const lessonPlanContext = context.lessonPlanContext
       ? `### LESSON CONTEXT
-This The lesson is up to this unit now. Here is the full lesson plan up to and including this unit:
+This exercise is part of a larger lesson. Here is the full lesson plan up to and including this unit:
 
 ${context.lessonPlanContext}
 
