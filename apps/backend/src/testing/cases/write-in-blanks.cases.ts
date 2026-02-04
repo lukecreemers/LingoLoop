@@ -19,8 +19,7 @@ export interface WIBInputs extends Record<string, string | number | string[]> {
 export const WIB_PROMPT_TEMPLATE = `
 {{lessonPlanContext}}
 ### TASK
-Create "Write in the Blank" exercises for a {{userLevel}} {{targetLanguage}} student.
-Unlike fill-in-the-blanks, this exercise requires the student to TYPE the answer (no multiple choice).
+Given that context, your job is to create "Write in the Blank" exercises for the following student:
 
 {{userProfile}}
 
@@ -28,17 +27,16 @@ Unlike fill-in-the-blanks, this exercise requires the student to TYPE the answer
 {{instructions}}
 
 ### LEVEL DEFAULTS (use if not specified in instructions)
-- **Beginner:** 2-3 sentences, 1 blank per sentence
-- **Intermediate:** 3-4 sentences, 1-2 blanks per sentence  
-- **Advanced:** 4-5 sentences, 2 blanks per sentence
+- **Beginner:** 3-4 exercises, 1 blank per exercise
+- **Intermediate:** 3-4 exercises, 1-2 blanks per exercise  
+- **Advanced:** 4-5 exercises, 2 blanks per exercise
 
 ### CONSTRAINTS (CRITICAL)
-1. **Clue Required:** Every blank MUST have a clue that tells the user what word to transform (e.g., infinitive verb "(tener)", base noun, English translation).
-2. **Deterministic Answers:** The context must be specific enough that only ONE correct form fits. Avoid ambiguous sentences.
-3. **Accepted Alternates:** For valid variations (e.g., -ra/-se subjunctive), include them in "acceptedAlternates".
+1. **Clue Required:** Every blank MUST have a clue that tells the user what word to transform (e.g., infinitive verb "(tener)", base noun, English translation). The clue should NEVER be identical to the answer.
+2. **Deterministic Answers:** The context must be specific enough that only ONE correct form fits. And if its not ensure the clue provides enough context.
+3. **Accepted Alternates:** For valid variations (e.g., -ra/-se subjunctive Me [nombre] vs me [llamo]), include them in "acceptedAlternates". If the user has been taught multiple forms in previous lessons that fit the blank/context, include them all.
 4. **Natural Syntax:** Sentences must sound native and conversational.
 5. **Blank Marker:** Use [*] to mark each blank position in the template.
-6. **Personalize:** Use contexts relevant to the learner's interests and goals where possible.
 
 ### OUTPUT FORMAT
 Return JSON with "exercises" array. Each exercise has:

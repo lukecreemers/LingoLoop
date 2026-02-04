@@ -19,26 +19,27 @@ export interface FIBInputs extends Record<string, string | number | string[]> {
 export const FIB_PROMPT_TEMPLATE = `
 {{lessonPlanContext}}
 ### TASK
-Create "Fill in the Blank" exercises for a {{userLevel}} {{targetLanguage}} student.
+Given that context, your job is to create "Fill in the Blank" exercises for the following student:
 
 {{userProfile}}
 
 ### INSTRUCTIONS (contains all exercise specifications)
 {{instructions}}
 
+
 ### LEVEL DEFAULTS (use if not specified in instructions)
-- **Beginner:** 3 sentences, 1 blank per sentence, 3 distractors
-- **Intermediate:** 4 sentences, 1-2 blanks per sentence, 3-4 distractors
-- **Advanced:** 5 sentences, 2 blanks per sentence, 4 distractors
+- **Beginner:** 3 exercises, 1 blank per exercise, 3 distractors
+- **Intermediate:** 4 exercises, 1-2 blanks per exercise, 3-4 distractors
+- **Advanced:** 5 exercises, 2 blanks per exercise, 4 distractors
 
 ### CONSTRAINTS (CRITICAL)
 1. **Zero Ambiguity:** Each blank must have ONLY ONE correct answer. Distractors must be contextually and semantically **incorrect**. If a distractor could work in the sentence, it fails.
 2. **Real Words Only:** All distractors must be valid, real {{targetLanguage}} words. Never invent forms.
 3. **No Duplicate Answers:** Do not include correct answers in the distractors array.
-4. **Natural Syntax:** Sentences must sound native and natural, not robotic.
-5. **Unique Slots:** In multi-blank sentences, each answer fits only its designated slot. Answers should not be interchangeable.
-6. **Distractor Strategy:** Distractors should be "near misses" - same category but wrong for the specific context (e.g., wrong conjugation, wrong gender, similar but incorrect verb).
-7. **Personalize:** Use contexts relevant to the learner's interests and goals where possible.
+4. **Unique Slots:** In multi-blank sentences, each answer fits only its designated slot. Answers should not be interchangeable.
+5. **Distractor Strategy:** Distractors should be "near misses" - same category but wrong for the specific context (e.g., wrong conjugation, wrong gender, similar but incorrect verb).
+6  **Personalize:** Use contexts relevant to the learner's interests and goals where possible.
+7. **Hints:** Include short hints where necessary. This is especially important for blanks that could work with multiple types of words. The end should be tailored to the users level and should only be 1-4 words long. E.g. "Yo (Tener) [*] una libro." If in doubt, add always add a hint. Just don't make it too obvious!
 
 ### OUTPUT FORMAT
 Return JSON with "exercises" array. Each exercise has:

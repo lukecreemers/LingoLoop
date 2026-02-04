@@ -19,24 +19,20 @@ export interface FCInputs extends Record<string, string | number | string[]> {
 export const FC_PROMPT_TEMPLATE = `
 {{lessonPlanContext}}
 ### TASK
-Create vocabulary flashcards for a {{userLevel}} {{targetLanguage}} learner (native {{nativeLanguage}}).
+Given that context, your job is to create vocabulary flashcards for the following student:
 
 {{userProfile}}
 
 ### INSTRUCTIONS (contains all specifications)
 {{instructions}}
 
-### LEVEL DEFAULTS (use if not specified in instructions)
-- **Beginner:** 4-5 cards, very common words, simple examples
-- **Intermediate:** 6-8 cards, moderate vocabulary, contextual examples
-- **Advanced:** 8-10 cards, nuanced vocabulary, idiomatic usage
 
 ### CONSTRAINTS
 1. Each card has: term, definition, optional example sentence with translation
 2. Terms should be appropriate for the user's level
 3. Order cards from simpler/more common to more complex
 4. Examples should demonstrate natural usage
-5. **Personalize:** Tailor vocabulary to the learner's interests and goals where possible
+5. Term and definition should be matching lengths (e.g. if the Term is "Tener", the Definition should be "To have")
 
 ### OUTPUT FORMAT
 Return JSON with:

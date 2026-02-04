@@ -19,25 +19,22 @@ export interface CGInputs extends Record<string, string | number | string[]> {
 export const CG_PROMPT_TEMPLATE = `
 {{lessonPlanContext}}
 ### TASK
-Generate a conversation in {{targetLanguage}} for a {{userLevel}} student.
-Create 2 relevant characters with names, ages, and genders.
+Given that context your job is to create a for the following student:
 
 {{userProfile}}
 
 ### INSTRUCTIONS (contains all specifications)
 {{instructions}}
 
-### LEVEL DEFAULTS (use if not specified in instructions)
-- **Beginner:** Short (4-6 turns), simple vocabulary, present tense
-- **Intermediate:** Medium (8-10 turns), mixed tenses, natural expressions
-- **Advanced:** Long (12+ turns), complex structures, nuanced dialogue
+Create 2 relevant characters with names, ages, and genders. Make sure the characters are relevant to the instructions and the context.
+Ensure the conversation matches the difficulty, concepts and themes taught in the lesson plan.
+
 
 ### CONSTRAINTS (CRITICAL)
-1. **Level-Appropriate:** Vocabulary and structures must match {{userLevel}}.
-2. **Natural & Authentic:** Write exactly how native speakers actually talk. No "textbook" dialogue.
-3. **Distinct Voices:** Each character should have a slightly different speech pattern.
-4. **Engaging Context:** The situation should be interesting and realistic.
-5. **Personalize:** Use scenarios relevant to the learner's goals and interests where possible.
+1. **Level-Appropriate:** Vocabulary and structures must match the users level.
+2. **Distinct Voices:** Each character should have a slightly different speech pattern.
+3. **Engaging Context:** Try and make the conversation fun and interesting, however priotise keeping language to user level and adhering to lesson plan/instructions.
+4. **Limitations** NEVER include english translations or any other contextual text in your output. ONLY output the conversation in the target language.
 
 ### OUTPUT FORMAT
 Return JSON with:
