@@ -12,8 +12,14 @@ export interface UnitResult {
   completedAt: Date;
 }
 
-// Lesson status
+// Lesson status (top level)
 export type LessonStatus = "idle" | "generating" | "playing" | "completed";
+
+// Sub-view when status is "playing"
+export type LessonView = "roadmap" | "section-intro" | "unit";
+
+// Node status for the roadmap
+export type NodeStatus = "locked" | "unlocked" | "active" | "completed";
 
 interface SectionedLessonState {
   // Data
@@ -25,6 +31,14 @@ interface SectionedLessonState {
   startTime: number | null;
   isRedoing: boolean;
   isRedoingSection: boolean;
+
+  // Lesson roadmap view state
+  lessonView: LessonView;
+  // Track which units have been completed (using "sectionIdx-unitIdx" keys)
+  completedUnits: Set<string>;
+  // The furthest point unlocked
+  furthestSectionIndex: number;
+  furthestUnitIndex: number;
 
   // Actions
   setLesson: (data: SectionedLesson) => void;
@@ -40,6 +54,19 @@ interface SectionedLessonState {
   updateSection: (sectionIndex: number, section: CompiledSection) => void;
   setIsRedoing: (value: boolean) => void;
   setIsRedoingSection: (value: boolean) => void;
+
+  // New navigation actions for roadmap flow
+  goToRoadmap: () => void;
+  goToUnit: (sectionIndex: number, unitIndex: number) => void;
+  showSectionIntro: (sectionIndex: number) => void;
+  advanceToNextUnit: () => void; // After completing a unit, moves to next
+
+  // Helper to get node status
+  getNodeStatus: (sectionIndex: number, unitIndex: number) => NodeStatus;
+}
+
+function makeUnitKey(sectionIndex: number, unitIndex: number): string {
+  return `${sectionIndex}-${unitIndex}`;
 }
 
 export const useSectionedLessonStore = create<SectionedLessonState>(
@@ -53,6 +80,10 @@ export const useSectionedLessonStore = create<SectionedLessonState>(
     startTime: null,
     isRedoing: false,
     isRedoingSection: false,
+    lessonView: "roadmap",
+    completedUnits: new Set<string>(),
+    furthestSectionIndex: 0,
+    furthestUnitIndex: 0,
 
     // Actions
     setLesson: (data) =>
@@ -63,6 +94,10 @@ export const useSectionedLessonStore = create<SectionedLessonState>(
         results: [],
         status: "idle",
         startTime: null,
+        lessonView: "roadmap",
+        completedUnits: new Set<string>(),
+        furthestSectionIndex: 0,
+        furthestUnitIndex: 0,
       }),
 
     startLesson: () =>
@@ -72,8 +107,13 @@ export const useSectionedLessonStore = create<SectionedLessonState>(
         currentSectionIndex: 0,
         currentUnitIndex: 0,
         results: [],
+        lessonView: "section-intro", // Start with section intro for section 0
+        completedUnits: new Set<string>(),
+        furthestSectionIndex: 0,
+        furthestUnitIndex: 0,
       }),
 
+    // Legacy nextUnit - now used internally
     nextUnit: () => {
       const { currentSectionIndex, currentUnitIndex, lessonData } = get();
       if (!lessonData) return;
@@ -81,19 +121,14 @@ export const useSectionedLessonStore = create<SectionedLessonState>(
       const currentSection = lessonData.sections[currentSectionIndex];
       if (!currentSection) return;
 
-      // Check if there are more units in current section
       if (currentUnitIndex < currentSection.units.length - 1) {
         set({ currentUnitIndex: currentUnitIndex + 1 });
-      }
-      // Check if there are more sections
-      else if (currentSectionIndex < lessonData.sections.length - 1) {
+      } else if (currentSectionIndex < lessonData.sections.length - 1) {
         set({
           currentSectionIndex: currentSectionIndex + 1,
           currentUnitIndex: 0,
         });
-      }
-      // Lesson complete
-      else {
+      } else {
         set({ status: "completed" });
       }
     },
@@ -125,6 +160,10 @@ export const useSectionedLessonStore = create<SectionedLessonState>(
         startTime: null,
         isRedoing: false,
         isRedoingSection: false,
+        lessonView: "roadmap",
+        completedUnits: new Set<string>(),
+        furthestSectionIndex: 0,
+        furthestUnitIndex: 0,
       }),
 
     setStatus: (status) => set({ status }),
@@ -156,6 +195,127 @@ export const useSectionedLessonStore = create<SectionedLessonState>(
 
     setIsRedoing: (value) => set({ isRedoing: value }),
     setIsRedoingSection: (value) => set({ isRedoingSection: value }),
+
+    // ====== New roadmap flow actions ======
+
+    goToRoadmap: () =>
+      set({ lessonView: "roadmap" }),
+
+    goToUnit: (sectionIndex, unitIndex) =>
+      set({
+        currentSectionIndex: sectionIndex,
+        currentUnitIndex: unitIndex,
+        lessonView: "unit",
+      }),
+
+    showSectionIntro: (sectionIndex) =>
+      set({
+        currentSectionIndex: sectionIndex,
+        currentUnitIndex: 0,
+        lessonView: "section-intro",
+      }),
+
+    advanceToNextUnit: () => {
+      const {
+        currentSectionIndex,
+        currentUnitIndex,
+        lessonData,
+        completedUnits,
+        furthestSectionIndex,
+        furthestUnitIndex,
+      } = get();
+      if (!lessonData) return;
+
+      // Mark current unit as completed
+      const newCompleted = new Set(completedUnits);
+      newCompleted.add(makeUnitKey(currentSectionIndex, currentUnitIndex));
+
+      const currentSection = lessonData.sections[currentSectionIndex];
+      if (!currentSection) return;
+
+      // Calculate next position
+      let nextSectionIdx = currentSectionIndex;
+      let nextUnitIdx = currentUnitIndex + 1;
+
+      if (nextUnitIdx >= currentSection.units.length) {
+        // Move to next section
+        nextSectionIdx = currentSectionIndex + 1;
+        nextUnitIdx = 0;
+      }
+
+      // Update furthest progress
+      let newFurthestSection = furthestSectionIndex;
+      let newFurthestUnit = furthestUnitIndex;
+
+      if (
+        nextSectionIdx > furthestSectionIndex ||
+        (nextSectionIdx === furthestSectionIndex &&
+          nextUnitIdx > furthestUnitIndex)
+      ) {
+        newFurthestSection = nextSectionIdx;
+        newFurthestUnit = nextUnitIdx;
+      }
+
+      // Check if lesson is complete
+      if (nextSectionIdx >= lessonData.sections.length) {
+        set({
+          completedUnits: newCompleted,
+          furthestSectionIndex: newFurthestSection,
+          furthestUnitIndex: newFurthestUnit,
+          status: "completed",
+        });
+        return;
+      }
+
+      // If moving to a new section, show the section intro
+      if (nextSectionIdx !== currentSectionIndex) {
+        set({
+          completedUnits: newCompleted,
+          furthestSectionIndex: newFurthestSection,
+          furthestUnitIndex: newFurthestUnit,
+          currentSectionIndex: nextSectionIdx,
+          currentUnitIndex: 0,
+          lessonView: "section-intro",
+        });
+      } else {
+        // Same section, go to next unit
+        set({
+          completedUnits: newCompleted,
+          furthestSectionIndex: newFurthestSection,
+          furthestUnitIndex: newFurthestUnit,
+          currentSectionIndex: nextSectionIdx,
+          currentUnitIndex: nextUnitIdx,
+          lessonView: "unit",
+        });
+      }
+    },
+
+    getNodeStatus: (sectionIndex, unitIndex) => {
+      const { completedUnits, furthestSectionIndex, furthestUnitIndex } = get();
+      const key = makeUnitKey(sectionIndex, unitIndex);
+
+      if (completedUnits.has(key)) return "completed";
+
+      // Check if this is the current furthest (unlocked/active) position
+      if (
+        sectionIndex === furthestSectionIndex &&
+        unitIndex === furthestUnitIndex
+      ) {
+        return "unlocked";
+      }
+
+      // Check if before the frontier
+      if (
+        sectionIndex < furthestSectionIndex ||
+        (sectionIndex === furthestSectionIndex &&
+          unitIndex < furthestUnitIndex)
+      ) {
+        // Should be completed but isn't in the set - treat as unlocked
+        return "unlocked";
+      }
+
+      return "locked";
+    },
   })
 );
 
@@ -194,7 +354,6 @@ export const useCurrentUnitGlobalIndex = () => {
 
   if (!lessonData) return 0;
 
-  // Sum all units in previous sections + current unit index
   let globalIndex = currentUnitIndex;
   for (let i = 0; i < currentSectionIndex; i++) {
     globalIndex += lessonData.sections[i].units.length;
@@ -221,9 +380,9 @@ export const useIsLastUnit = () => {
 };
 
 export const useLessonProgress = () => {
-  const currentGlobalIndex = useCurrentUnitGlobalIndex();
+  const completedUnits = useSectionedLessonStore((s) => s.completedUnits);
   const totalUnits = useTotalUnits();
-  return { current: currentGlobalIndex + 1, total: totalUnits };
+  return { current: completedUnits.size, total: totalUnits };
 };
 
 export const useTotalScore = () => {
@@ -235,4 +394,3 @@ export const useTotalScore = () => {
   );
   return { score: totalScore, total: totalPossible };
 };
-

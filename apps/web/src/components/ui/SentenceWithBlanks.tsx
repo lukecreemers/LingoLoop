@@ -44,7 +44,7 @@ export default function SentenceWithBlanks({
   }, [template]);
 
   return (
-    <div className="text-3xl leading-loose font-medium text-black flex flex-wrap items-center justify-start gap-y-4 font-sans tracking-tight">
+    <div className="text-3xl leading-relaxed font-medium text-black font-sans tracking-tight text-left">
       {segments.map((segment, index) => {
         if (segment.type === "text") {
           return (
@@ -55,7 +55,7 @@ export default function SentenceWithBlanks({
               sourceLanguage="Spanish"
               targetLanguage="English"
               textSize="text-3xl"
-              className="whitespace-pre-wrap"
+              className="inline whitespace-pre-wrap"
             />
           );
         }

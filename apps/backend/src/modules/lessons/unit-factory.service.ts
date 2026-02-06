@@ -17,6 +17,7 @@ import type { LessonPlanUnit, CompiledUnit } from 'src/shared';
 import type { RedoUnitInput } from 'src/shared/types/redo-unit.dto';
 
 // Prompt templates from test cases
+import { CTX_PROMPT_TEMPLATE } from 'src/testing/cases/context.cases';
 import { EX_PROMPT_TEMPLATE } from 'src/testing/cases/explanation.cases';
 import { FIB_PROMPT_TEMPLATE } from 'src/testing/cases/fill-in-blanks.cases';
 import { WMM_PROMPT_TEMPLATE } from 'src/testing/cases/word-meaning-match.cases';
@@ -62,8 +63,8 @@ export class UnitFactoryService {
       try {
         let output: unknown;
 
-        // Explanation doesn't need structured output - just get raw text
-        if (unit.type === 'explanation') {
+        // Context and Explanation don't need structured output - just get raw text
+        if (unit.type === 'context' || unit.type === 'explanation') {
           const response = await this.llm.invoke(prompt);
           output =
             typeof response.content === 'string'
@@ -209,6 +210,8 @@ You are generating content for the current unit. Use the above context to mainta
    */
   private getTemplateForType(type: LessonPlanUnit['type']): string {
     switch (type) {
+      case 'context':
+        return CTX_PROMPT_TEMPLATE;
       case 'flashcard':
         return FC_PROMPT_TEMPLATE;
       case 'explanation':
@@ -253,9 +256,10 @@ You are generating content for the current unit. Use the above context to mainta
         return WPOutputSchema;
       case 'word_order':
         return WOOutputSchema;
+      case 'context':
       case 'explanation':
         throw new Error(
-          'Explanation uses raw text output, not structured output',
+          'Context and Explanation use raw text output, not structured output',
         );
       default:
         throw new Error(`Unknown unit type: ${type}`);
@@ -267,6 +271,10 @@ You are generating content for the current unit. Use the above context to mainta
    */
   private buildAvoidContext(previousOutput: CompiledUnit): string {
     switch (previousOutput.type) {
+      case 'context':
+        const contextText = previousOutput.output as string;
+        return `IMPORTANT: Generate completely different context introduction. The previous context covered: "${contextText.slice(0, 500)}...". Use different framing and different examples.`;
+
       case 'flashcard':
         const terms = previousOutput.output.cards.map((c) => c.term).join(', ');
         return `IMPORTANT: Generate completely different flashcards. DO NOT use any of these terms: ${terms}. Choose different vocabulary within the same theme.`;
@@ -290,8 +298,10 @@ You are generating content for the current unit. Use the above context to mainta
         return `IMPORTANT: Generate completely different word pairs. DO NOT use any of these words: ${pairs}`;
 
       case 'translation':
-        const paragraph = previousOutput.output.paragraph;
-        return `IMPORTANT: Generate a completely different paragraph. DO NOT use this paragraph or similar variations: ${paragraph}`;
+        const paragraphs = previousOutput.output.exercises
+          .map((e) => e.paragraph)
+          .join('; ');
+        return `IMPORTANT: Generate completely different paragraphs. DO NOT use any of these paragraphs or similar variations: ${paragraphs}`;
 
       case 'conversation':
         return `IMPORTANT: Generate a completely different conversation. The previous conversation was: "${previousOutput.output.conversation.slice(0, 500)}...". Use different characters, different scenario, different dialogue.`;

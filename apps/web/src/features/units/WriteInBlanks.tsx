@@ -4,7 +4,12 @@ import SentenceWithInputs from "../../components/ui/SentenceWithInputs";
 import { ExplainWrongButton } from "../../components/ui/ExplainWrong";
 import { RedoButton } from "../../components/ui/RedoButton";
 
-type SlotStatus = "empty" | "filled" | "correct" | "incorrect";
+type SlotStatus = "empty" | "filled" | "correct" | "almost" | "incorrect";
+
+// Strip diacritical marks (accents) from a string for fuzzy comparison
+function stripAccents(str: string): string {
+  return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+}
 
 interface WriteInBlanksProps {
   data: WIBOutput;
@@ -66,13 +71,25 @@ export default function WriteInBlanks({
       const correctAnswer = blank.correctAnswer.toLowerCase();
       const alternates = blank.acceptedAlternates.map((a) => a.toLowerCase());
 
-      // Check if answer matches correct answer or any accepted alternates
+      // Exact match (case-insensitive) — fully correct
       if (
         trimmedAnswer === correctAnswer ||
         alternates.includes(trimmedAnswer)
       ) {
         return "correct";
       }
+
+      // Accent-tolerant match — correct letters but wrong/missing accents
+      const strippedAnswer = stripAccents(trimmedAnswer);
+      const strippedCorrect = stripAccents(correctAnswer);
+      const strippedAlternates = alternates.map(stripAccents);
+      if (
+        strippedAnswer === strippedCorrect ||
+        strippedAlternates.includes(strippedAnswer)
+      ) {
+        return "almost";
+      }
+
       return "incorrect";
     });
 
@@ -80,16 +97,26 @@ export default function WriteInBlanks({
     setIsChecked(true);
 
     const correctCount = newStatuses.filter((s) => s === "correct").length;
+    const almostCount = newStatuses.filter((s) => s === "almost").length;
     setScore((prev) => ({
       correct: prev.correct + correctCount,
       total: prev.total + blankCount,
     }));
 
     // Track exercise-level result
-    const allCorrectInExercise = newStatuses.every((s) => s === "correct");
+    // "almost" counts as not fully correct but is less harsh
+    const allCorrectInExercise = newStatuses.every(
+      (s) => s === "correct" || s === "almost"
+    );
+    const hasIncorrect = newStatuses.some((s) => s === "incorrect");
     setExerciseResults((prev) => {
       const newResults = [...prev];
-      newResults[currentIndex] = allCorrectInExercise ? "correct" : "incorrect";
+      newResults[currentIndex] =
+        !hasIncorrect && almostCount === 0
+          ? "correct"
+          : hasIncorrect
+          ? "incorrect"
+          : "correct"; // all-almost still counts as correct at exercise level
       return newResults;
     });
   };
@@ -103,7 +130,10 @@ export default function WriteInBlanks({
   };
 
   const isLastExercise = currentIndex === data.exercises.length - 1;
-  const allCorrect = slotStatuses.every((s) => s === "correct");
+  const allCorrect = slotStatuses.every(
+    (s) => s === "correct" || s === "almost"
+  );
+  const hasAlmost = slotStatuses.some((s) => s === "almost");
 
   // Get the correct answers for feedback
   const correctAnswers = currentExercise.blanks.map((b) => b.correctAnswer);
@@ -159,7 +189,7 @@ export default function WriteInBlanks({
         {/* Sentence Container - Flex Grow with max height constraint */}
         <div className="flex-1 bg-white border-2 border-black p-8 bauhaus-shadow flex flex-col relative min-h-0 mb-6">
           {/* Scrollable Sentence Area if text is very long */}
-          <div className="flex-1 flex items-center justify-center overflow-y-auto">
+          <div className="flex-1 flex items-center justify-start overflow-y-auto">
             <SentenceWithInputs
               template={currentExercise.template}
               blanks={currentExercise.blanks}
@@ -174,10 +204,22 @@ export default function WriteInBlanks({
           <div className="min-h-24 shrink-0 flex flex-col items-center justify-center border-t-2 border-zinc-100 mt-4 py-3">
             {isChecked ? (
               <div className="animate-in fade-in slide-in-from-bottom-2 text-center w-full">
-                {allCorrect ? (
+                {allCorrect && !hasAlmost ? (
                   <p className="text-bauhaus-green font-black text-2xl tracking-tight">
                     PERFECT!
                   </p>
+                ) : allCorrect && hasAlmost ? (
+                  <div>
+                    <p className="text-orange-500 font-black text-2xl tracking-tight mb-1">
+                      ALMOST!
+                    </p>
+                    <p className="text-sm text-zinc-500">
+                      Watch your accents — the correct spelling is:
+                    </p>
+                    <p className="text-lg font-bold text-black mt-1">
+                      {correctAnswers.join(", ")}
+                    </p>
+                  </div>
                 ) : (
                   <>
                     <p className="text-bauhaus-red font-bold text-xs tracking-widest uppercase mb-1">

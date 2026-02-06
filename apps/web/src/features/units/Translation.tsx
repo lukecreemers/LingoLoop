@@ -108,11 +108,18 @@ function getScoreLabel(score: number): string {
 }
 
 export default function Translation({ data, plan: _plan, onComplete }: TranslationProps) {
+  // Track current exercise index
+  const [currentExerciseIndex, setCurrentExerciseIndex] = useState(0);
   const [userTranslation, setUserTranslation] = useState("");
   const [markingResult, setMarkingResult] = useState<TMOutput | null>(null);
   const [showIdealAnswer, setShowIdealAnswer] = useState(false);
 
   const { markTranslation, isLoading, error } = useTranslationMarking();
+
+  // Get current exercise from the array
+  const currentExercise = data.exercises[currentExerciseIndex];
+  const totalExercises = data.exercises.length;
+  const isLastExercise = currentExerciseIndex >= totalExercises - 1;
 
   const parsedMarkedText = useMemo(() => {
     if (!markingResult) return [];
@@ -124,14 +131,23 @@ export default function Translation({ data, plan: _plan, onComplete }: Translati
   const handleSubmit = async () => {
     if (!userTranslation.trim()) return;
 
-    const result = await markTranslation(data.translation, userTranslation);
+    const result = await markTranslation(currentExercise.translation, userTranslation);
     if (result) {
       setMarkingResult(result);
     }
   };
 
   const handleContinue = () => {
-    onComplete();
+    if (isLastExercise) {
+      // Complete the unit
+      onComplete();
+    } else {
+      // Move to next exercise
+      setCurrentExerciseIndex((prev) => prev + 1);
+      setUserTranslation("");
+      setMarkingResult(null);
+      setShowIdealAnswer(false);
+    }
   };
 
   const handleTryAgain = () => {
@@ -149,6 +165,11 @@ export default function Translation({ data, plan: _plan, onComplete }: Translati
             <h1 className="text-4xl font-black tracking-tighter leading-none">
               TRANSLATE<span className="text-bauhaus-blue">.</span>
             </h1>
+            {totalExercises > 1 && (
+              <span className="text-sm font-bold text-zinc-500 mt-1">
+                {currentExerciseIndex + 1} / {totalExercises}
+              </span>
+            )}
           </div>
 
           {markingResult && (
@@ -169,6 +190,11 @@ export default function Translation({ data, plan: _plan, onComplete }: Translati
             </div>
           )}
         </div>
+
+        {/* Progress bar for multiple exercises */}
+        {totalExercises > 1 && (
+          <ProgressBar current={currentExerciseIndex + 1} total={totalExercises} />
+        )}
       </header>
 
       {/* Main Content */}
@@ -178,7 +204,7 @@ export default function Translation({ data, plan: _plan, onComplete }: Translati
           <div className="text-xs font-bold tracking-widest text-zinc-400 uppercase mb-3">
             Translate this text
           </div>
-          <p className="text-lg leading-relaxed">{data.paragraph}</p>
+          <p className="text-lg leading-relaxed">{currentExercise.paragraph}</p>
         </div>
 
         {/* Translation Input or Result */}
@@ -264,7 +290,7 @@ export default function Translation({ data, plan: _plan, onComplete }: Translati
               {showIdealAnswer && (
                 <div className="p-6 pt-0 border-t border-zinc-200">
                   <p className="text-lg leading-relaxed text-bauhaus-green">
-                    {data.translation}
+                    {currentExercise.translation}
                   </p>
                 </div>
               )}
@@ -312,7 +338,7 @@ export default function Translation({ data, plan: _plan, onComplete }: Translati
                 bg-bauhaus-green text-white hover:bg-emerald-700 bauhaus-shadow
                 transition-all duration-100 active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
             >
-              Continue →
+              {isLastExercise ? "Complete →" : "Next →"}
             </button>
           )}
         </div>
@@ -320,4 +346,3 @@ export default function Translation({ data, plan: _plan, onComplete }: Translati
     </div>
   );
 }
-

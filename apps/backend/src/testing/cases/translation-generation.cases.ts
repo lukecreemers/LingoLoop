@@ -7,9 +7,8 @@ import { ModelConfig } from '../test.types';
 // ============================================================================
 
 export interface TGInputs extends Record<string, string | number | string[]> {
-  userLevel: string;
-  targetLanguage: string;
-  nativeLanguage: string;
+  lessonPlanContext: string;
+  userProfile: string;
   instructions: string;
 }
 
@@ -20,31 +19,19 @@ export interface TGInputs extends Record<string, string | number | string[]> {
 export const TG_PROMPT_TEMPLATE = `
 {{lessonPlanContext}}
 ### TASK
-Generate a paragraph for a {{userLevel}} student to translate. You will provide both the source text and an ideal translation.
-
+Given that context, your job is to create "Translation" exercises for the following student:
 {{userProfile}}
 
 ### INSTRUCTIONS (contains all specifications)
 {{instructions}}
 
-### LEVEL DEFAULTS (use if not specified in instructions)
-- **Beginner:** 1-2 short sentences, simple vocabulary, present tense
-- **Intermediate:** 2-3 sentences, mixed tenses, moderate complexity
-- **Advanced:** 3-4 sentences, complex structures, nuanced vocabulary
-
-### CONSTRAINTS
-1. **Level-Appropriate:** Vocabulary and grammar must match the user's level.
-2. **Natural Flow:** The paragraph should read like native speech, not disconnected sentences.
-3. **Coherent Theme:** All sentences should connect to form a unified paragraph.
-4. **Useful Practice:** Focus on structures the student needs to practice.
-5. **Personalize:** Use themes related to the learner's goals and interests where possible.
+The paragraph for each exercise could be a short phrase, sentence or entire paragraph. This will depened on the instructions and context.
+Complexity should be appropriate for the user's level. For more advanced users, its okay to include more complex sentences and paragraphs with more of a focus on natural sounding language.
 
 ### OUTPUT FORMAT
 Return JSON with:
-- paragraph: The source text to translate
-- translation: The ideal translation
-- difficulty: "beginner" | "intermediate" | "advanced"
-`.trim();
+- exercises: Array of { paragraph, translation }
+  `.trim();
 
 // ============================================================================
 // TEST CASES
@@ -55,9 +42,8 @@ export const TG_TEST_CASES: TestCase<TGInputs>[] = [
     name: 'Beginner - Morning Routine EN→ES',
     description: 'Simple present tense sentences.',
     inputs: {
-      userLevel: 'beginner',
-      targetLanguage: 'Spanish',
-      nativeLanguage: 'English',
+      lessonPlanContext: 'This is a lesson about daily routines and present tense verbs.',
+      userProfile: 'Level: beginner\nTarget Language: Spanish\nNative Language: English',
       instructions:
         'Generate 2 sentences about a morning routine for translation from English to Spanish. Use present tense, simple vocabulary (wake up, eat, go to work/school).',
     },
@@ -66,9 +52,8 @@ export const TG_TEST_CASES: TestCase<TGInputs>[] = [
     name: 'Intermediate - Travel Memory ES→EN',
     description: 'Past tense narrative.',
     inputs: {
-      userLevel: 'intermediate',
-      targetLanguage: 'Spanish',
-      nativeLanguage: 'English',
+      lessonPlanContext: 'This is a lesson about past tense and storytelling using preterite and imperfect.',
+      userProfile: 'Level: intermediate\nTarget Language: Spanish\nNative Language: English',
       instructions:
         'Generate 3 sentences in Spanish about a memorable vacation experience for translation to English. Use preterite and imperfect tenses. Include time expressions like "ayer", "mientras".',
     },
@@ -77,9 +62,8 @@ export const TG_TEST_CASES: TestCase<TGInputs>[] = [
     name: 'Advanced - Opinion Piece EN→ES',
     description: 'Complex structures with subjunctive.',
     inputs: {
-      userLevel: 'advanced',
-      targetLanguage: 'Spanish',
-      nativeLanguage: 'English',
+      lessonPlanContext: 'This is a lesson on advanced grammar including subjunctive mood and conditional structures.',
+      userProfile: 'Level: advanced\nTarget Language: Spanish\nNative Language: English',
       instructions:
         'Generate 4 sentences in English about the impact of technology on education for translation to Spanish. Include structures requiring subjunctive (doubt, opinion) and conditional sentences.',
     },

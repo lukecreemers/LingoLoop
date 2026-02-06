@@ -79,3 +79,27 @@ body {
 .bg-bauhaus-black {
   background-color: var(--bauhaus-black);
 }
+
+.border-bauhaus-red {
+  border-color: var(--bauhaus-red);
+}
+.border-bauhaus-blue {
+  border-color: var(--bauhaus-blue);
+}
+.border-bauhaus-green {
+  border-color: var(--bauhaus-green);
+}
+.border-bauhaus-yellow {
+  border-color: var(--bauhaus-yellow);
+}
+
+.bg-bauhaus-white {
+  background-color: var(--bauhaus-white);
+}
+.text-bauhaus-white {
+  color: var(--bauhaus-white);
+}
+
+.ring-bauhaus-blue {
+  --tw-ring-color: var(--bauhaus-blue);
+}

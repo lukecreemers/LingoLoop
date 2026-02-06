@@ -15,6 +15,7 @@ import { WOOutputSchema } from './word-order.types';
 // ============================================================================
 
 export const UnitTypeSchema = z.enum([
+  'context',
   'flashcard',
   'explanation',
   'fill_in_blanks',
@@ -55,6 +56,12 @@ export const CLGOutputSchema = z.object({
 // COMPILED OUTPUT SCHEMAS (after executing each unit)
 // Each includes the original plan (instructions) for redo functionality
 // ============================================================================
+
+export const CompiledContextUnitSchema = z.object({
+  type: z.literal('context'),
+  plan: LessonPlanUnitSchema,
+  output: EXOutputSchema, // Context is also just markdown text
+});
 
 export const CompiledExplanationUnitSchema = z.object({
   type: z.literal('explanation'),
@@ -111,6 +118,7 @@ export const CompiledWordOrderUnitSchema = z.object({
 });
 
 export const CompiledUnitSchema = z.discriminatedUnion('type', [
+  CompiledContextUnitSchema,
   CompiledFlashcardUnitSchema,
   CompiledExplanationUnitSchema,
   CompiledFillInBlanksUnitSchema,
@@ -133,6 +141,7 @@ export const CompiledLessonSchema = z.object({
 export type LessonPlanUnit = z.infer<typeof LessonPlanUnitSchema>;
 export type CLGOutput = z.infer<typeof CLGOutputSchema>;
 
+export type CompiledContextUnit = z.infer<typeof CompiledContextUnitSchema>;
 export type CompiledExplanationUnit = z.infer<
   typeof CompiledExplanationUnitSchema
 >;

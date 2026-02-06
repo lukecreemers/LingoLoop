@@ -1,6 +1,6 @@
 import { useRef, useEffect } from "react";
 
-type SlotStatus = "empty" | "filled" | "correct" | "incorrect";
+type SlotStatus = "empty" | "filled" | "correct" | "almost" | "incorrect";
 
 interface TextInputSlotProps {
   value: string;
@@ -30,6 +30,9 @@ export default function TextInputSlot({
   const getSlotStyles = () => {
     if (status === "correct") {
       return "border-bauhaus-green bg-emerald-50 text-bauhaus-green";
+    }
+    if (status === "almost") {
+      return "border-orange-400 bg-orange-50 text-orange-600";
     }
     if (status === "incorrect") {
       return "border-bauhaus-red bg-rose-50 text-bauhaus-red";

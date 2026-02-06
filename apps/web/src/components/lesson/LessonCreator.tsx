@@ -1,56 +1,29 @@
 import { useState } from "react";
-import { useSectionedLessonStore } from "../../stores/useSectionedLessonStore";
-import type { SectionedLesson } from "@shared";
 
-interface LessonCreatorProps {
-  onLessonCreated: () => void;
+export interface CreateLessonFormData {
+  userLevel: string;
+  targetLanguage: string;
+  nativeLanguage: string;
+  lessonTitle: string;
+  lessonDescription: string;
 }
 
-export default function LessonCreator({ onLessonCreated }: LessonCreatorProps) {
-  const setLesson = useSectionedLessonStore((s) => s.setLesson);
-  const setStatus = useSectionedLessonStore((s) => s.setStatus);
+interface LessonCreatorProps {
+  onSubmit: (formData: CreateLessonFormData) => void;
+}
 
-  const [formData, setFormData] = useState({
+export default function LessonCreator({ onSubmit }: LessonCreatorProps) {
+  const [formData, setFormData] = useState<CreateLessonFormData>({
     userLevel: "beginner",
     targetLanguage: "Spanish",
     nativeLanguage: "English",
-    instructions: "",
+    lessonTitle: "",
+    lessonDescription: "",
   });
 
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
-    setError(null);
-    setStatus("generating");
-
-    try {
-      const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:3000";
-      const response = await fetch(`${apiUrl}/lessons/create-sectioned`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(formData),
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to create lesson");
-      }
-
-      const result = await response.json();
-      const lessonData = result.data as SectionedLesson;
-
-      setLesson(lessonData);
-      onLessonCreated();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "An error occurred");
-      setStatus("idle");
-    } finally {
-      setIsLoading(false);
-    }
+    onSubmit(formData);
   };
 
   return (
@@ -125,59 +98,55 @@ export default function LessonCreator({ onLessonCreated }: LessonCreatorProps) {
             </div>
           </div>
 
-          {/* Instructions */}
+          {/* Lesson Title */}
+          <div className="bg-white border-2 border-black p-4 bauhaus-shadow">
+            <label className="block text-xs font-bold tracking-widest text-zinc-400 uppercase mb-2">
+              Lesson Title
+            </label>
+            <input
+              type="text"
+              value={formData.lessonTitle}
+              onChange={(e) =>
+                setFormData({ ...formData, lessonTitle: e.target.value })
+              }
+              placeholder="e.g., Common Greetings, Ordering Food, Past Tense Verbs..."
+              className="w-full p-3 border-2 border-zinc-300 focus:border-black focus:outline-none"
+              required
+            />
+          </div>
+
+          {/* Lesson Description */}
           <div className="bg-white border-2 border-black p-4 bauhaus-shadow">
             <label className="block text-xs font-bold tracking-widest text-zinc-400 uppercase mb-2">
               What do you want to learn?
             </label>
             <textarea
-              value={formData.instructions}
+              value={formData.lessonDescription}
               onChange={(e) =>
-                setFormData({ ...formData, instructions: e.target.value })
+                setFormData({ ...formData, lessonDescription: e.target.value })
               }
-              placeholder="e.g., Common greetings and introductions, how to order food at a restaurant, past tense verbs..."
+              placeholder="Describe the focus of this lesson in detail. e.g., Learn how to greet people formally and informally, introduce yourself, and ask about someone's wellbeing..."
               rows={4}
               className="w-full p-3 border-2 border-zinc-300 focus:border-black focus:outline-none resize-none"
               required
             />
           </div>
 
-          {/* Error */}
-          {error && (
-            <div className="p-4 bg-rose-50 border-2 border-bauhaus-red text-bauhaus-red">
-              {error}
-            </div>
-          )}
-
           {/* Submit */}
           <button
             type="submit"
-            disabled={isLoading || !formData.instructions.trim()}
+            disabled={!formData.lessonTitle.trim() || !formData.lessonDescription.trim()}
             className={`
               w-full px-10 py-4 text-lg font-bold uppercase tracking-widest border-2 border-black
               transition-all duration-100 active:translate-x-[2px] active:translate-y-[2px] active:shadow-none
               ${
-                isLoading || !formData.instructions.trim()
+                !formData.lessonTitle.trim() || !formData.lessonDescription.trim()
                   ? "bg-zinc-100 text-zinc-300 border-zinc-200 cursor-not-allowed"
                   : "bg-bauhaus-blue text-white hover:bg-blue-700 bauhaus-shadow"
               }
             `}
           >
-            {isLoading ? (
-              <span className="flex items-center justify-center gap-2">
-                <span className="w-2 h-2 bg-white animate-bounce" />
-                <span
-                  className="w-2 h-2 bg-white animate-bounce"
-                  style={{ animationDelay: "150ms" }}
-                />
-                <span
-                  className="w-2 h-2 bg-white animate-bounce"
-                  style={{ animationDelay: "300ms" }}
-                />
-              </span>
-            ) : (
-              "Generate Lesson →"
-            )}
+            Generate Lesson →
           </button>
         </form>
       </div>

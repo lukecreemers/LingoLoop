@@ -178,7 +178,7 @@ export default function FillInBlanks({
           {/* Sentence Container - Flex Grow with max height constraint */}
           <div className="flex-1 bg-white border-2 border-black p-8 bauhaus-shadow flex flex-col relative min-h-0 mb-6">
             {/* Scrollable Sentence Area if text is very long */}
-            <div className="flex-1 flex items-center justify-center overflow-y-auto">
+            <div className="flex-1 flex items-center justify-start overflow-y-auto">
               <SentenceWithBlanks
                 template={currentExercise.template}
                 filledAnswers={filledAnswers}

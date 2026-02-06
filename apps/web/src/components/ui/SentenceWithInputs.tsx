@@ -3,7 +3,7 @@ import TextInputSlot from "./TextInputSlot";
 import SelectableText from "./SelectableText";
 import { DEMO_KNOWN_VOCAB } from "../../constants/vocab";
 
-type SlotStatus = "empty" | "filled" | "correct" | "incorrect";
+type SlotStatus = "empty" | "filled" | "correct" | "almost" | "incorrect";
 
 interface BlankInfo {
   correctAnswer: string;
@@ -50,7 +50,7 @@ export default function SentenceWithInputs({
   }, [template]);
 
   return (
-    <div className="text-3xl leading-loose font-medium text-black flex flex-wrap items-end justify-start gap-y-4 font-sans tracking-tight">
+    <div className="text-3xl leading-relaxed font-medium text-black font-sans tracking-tight text-left">
       {segments.map((segment, index) => {
         if (segment.type === "text") {
           return (
@@ -61,7 +61,7 @@ export default function SentenceWithInputs({
               sourceLanguage="Spanish"
               targetLanguage="English"
               textSize="text-3xl"
-              className="whitespace-pre-wrap"
+              className="inline whitespace-pre-wrap"
             />
           );
         }

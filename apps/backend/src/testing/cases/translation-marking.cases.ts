@@ -35,6 +35,9 @@ Wrap any mistakes in an <err> tag.
 - 5-7: Grammatical errors (gender, number, basic tense) that do not hide the meaning.
 - 1-4: Major tense confusion or word-order issues that make it hard to follow.
 
+## Important Details
+1. The answer key is only a reference. If the user's translation uses wording or phrases that convey the same message and meaning, do not mark the user down for that.
+2. The user's translation should be reconstructed exactly as written (with included error tags). Do not add or remove any words or phrases.
 ### OUTPUT FORMAT
 
 Return ONLY the reconstructed string with inline tags.

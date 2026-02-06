@@ -2,6 +2,7 @@ import { useState } from "react";
 import "./App.css";
 import type { SectionedLesson } from "@shared";
 import { LessonPlayer, LessonCreator } from "./components/lesson";
+import type { CreateLessonFormData } from "./components/lesson/LessonCreator";
 import { useSectionedLessonStore } from "./stores/useSectionedLessonStore";
 import { useRoadmapStore } from "./stores/useRoadmapStore";
 import Roadmap from "./features/roadmap/Roadmap";
@@ -15,25 +16,46 @@ const demoLessonData: SectionedLesson = {
     nativeLanguage: "English",
   },
   sectionInstructions: [
-    "Section 1: Introduction to Spanish greetings with a sample conversation and vocabulary",
-    "Section 2: Practice using greeting phrases with exercises",
+    "Introduction",
+    "Learning Greetings & Introductions",
+    "Practice & Review",
   ],
   sections: [
     {
-      sectionInstruction:
-        "Section 1: Introduction to Spanish greetings with a sample conversation and vocabulary",
+      sectionInstruction: "Introduction",
       sectionIndex: 0,
       unitPlans: [
         {
-          type: "conversation",
+          type: "context",
           instructions:
-            "Create a conversation about two people meeting and introducing themselves. conversationLength: medium",
+            "Introduce a lesson about basic Spanish greetings and introductions.",
         },
+      ],
+      units: [
         {
-          type: "flashcard",
-          instructions:
-            "Basic greeting vocabulary for introductions. cardCount: 6",
+          type: "context",
+          plan: {
+            type: "context",
+            instructions:
+              "Introduce a lesson about basic Spanish greetings and introductions.",
+          },
+          output: `## Welcome to Your First Greetings Lesson!
+
+Today, we're going to learn how to **introduce yourself in Spanish** and use common **greeting phrases**.
+
+By the end of this lesson you'll be able to:
+- Say hello and goodbye in Spanish
+- Introduce yourself using **"Me llamo"** and **"Soy de"**
+- Have a simple conversation when meeting someone new
+
+We'll start with some vocabulary flashcards, then read an explanation, and finish with fun practice exercises. Let's get started!`,
         },
+      ],
+    },
+    {
+      sectionInstruction: "Learning Greetings & Introductions",
+      sectionIndex: 1,
+      unitPlans: [
         {
           type: "explanation",
           instructions:
@@ -137,8 +159,8 @@ Now let's practice these phrases!`,
     },
     {
       sectionInstruction:
-        "Section 2: Practice using greeting phrases with exercises",
-      sectionIndex: 1,
+        "Practice & Review",
+      sectionIndex: 2,
       unitPlans: [
         {
           type: "fill_in_blanks",
@@ -326,8 +348,61 @@ function App() {
     setView("creator");
   };
 
-  const handleLessonCreated = () => {
+  const handleLessonFormSubmit = async (formData: CreateLessonFormData) => {
+    // Switch to player view immediately so the "Maestro is composing..." screen shows
+    setStatus("generating");
     setView("player");
+
+    try {
+      const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:3000";
+      const response = await fetch(`${apiUrl}/lessons/create-structured`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(formData),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to create lesson");
+      }
+
+      const result = await response.json();
+      const data = result.data ?? result;
+
+      // Log pipeline debug info to console
+      if (data.pipeline) {
+        console.group("🔧 Lesson Pipeline Debug");
+        console.log("📝 Structure Prompt:", data.pipeline.structurePrompt);
+        console.log("📄 Raw XML Response:", data.pipeline.rawXmlResponse);
+        console.log("🏷️ Extracted XML:", data.pipeline.extractedXml);
+        console.log("📦 Parsed Sections:", data.pipeline.parsedSections);
+        console.group("⚙️ Unit Executions");
+        data.pipeline.unitExecutions?.forEach(
+          (unit: {
+            sectionIndex: number;
+            unitIndex: number;
+            unitType: string;
+            unitName: string;
+            prompt: string;
+            output: unknown;
+          }) => {
+            console.group(
+              `S${unit.sectionIndex + 1} Unit ${unit.unitIndex + 1}: ${unit.unitName} (${unit.unitType})`
+            );
+            console.log("Prompt:", unit.prompt);
+            console.log("Output:", unit.output);
+            console.groupEnd();
+          }
+        );
+        console.groupEnd();
+        console.groupEnd();
+      }
+
+      setLesson(data.lesson ?? data);
+    } catch (error) {
+      console.error("Failed to generate lesson:", error);
+      setStatus("idle");
+      setView("creator");
+    }
   };
 
   const handleClose = () => {
@@ -378,10 +453,10 @@ function App() {
         console.log("📝 Structure Prompt:", data.pipeline.structurePrompt);
         console.log("📄 Raw XML Response:", data.pipeline.rawXmlResponse);
         console.log("🏷️ Extracted XML:", data.pipeline.extractedXml);
-        console.log("📦 Parsed Units:", data.pipeline.parsedUnits);
+        console.log("📦 Parsed Sections:", data.pipeline.parsedSections);
         console.group("⚙️ Unit Executions");
-        data.pipeline.unitExecutions?.forEach((unit: { unitIndex: number; unitType: string; unitName: string; prompt: string; output: unknown }) => {
-          console.group(`Unit ${unit.unitIndex + 1}: ${unit.unitName} (${unit.unitType})`);
+        data.pipeline.unitExecutions?.forEach((unit: { sectionIndex: number; unitIndex: number; unitType: string; unitName: string; prompt: string; output: unknown }) => {
+          console.group(`S${unit.sectionIndex + 1} Unit ${unit.unitIndex + 1}: ${unit.unitName} (${unit.unitType})`);
           console.log("Prompt:", unit.prompt);
           console.log("Output:", unit.output);
           console.groupEnd();
@@ -424,7 +499,7 @@ function App() {
 
   // Render based on current view
   if (view === "creator") {
-    return <LessonCreator onLessonCreated={handleLessonCreated} />;
+    return <LessonCreator onSubmit={handleLessonFormSubmit} />;
   }
 
   if (view === "player") {

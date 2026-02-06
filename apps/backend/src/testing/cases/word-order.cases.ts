@@ -38,6 +38,9 @@ The student will see scrambled words and must arrange them in the correct order.
 3. Sentences should be varied (not repetitive patterns)
 4. Match complexity to the user's level
 5. **Personalize:** Use contexts related to the learner's interests and goals where possible
+6. For the sentence NEVER include any other text, instructions, brackets (e.g. "/"). Your sentence will be broken down into indivudal words automatically.
+7. The translation should NEVER include any other text other than translation. ESPECIALLY the original sentence, this cannot appear in translation.
+8. Sentence should be punctuated correctly (e.g. full stops, commas, etc.)
 
 ### OUTPUT FORMAT
 Return JSON with:

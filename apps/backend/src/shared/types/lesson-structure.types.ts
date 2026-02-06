@@ -55,6 +55,7 @@ export type LessonStructureOutput = z.infer<typeof LessonStructureOutputSchema>;
 // ============================================================================
 
 export const UNIT_TYPE_NAMES: Record<z.infer<typeof UnitTypeSchema>, string> = {
+  context: 'Lesson introduction',
   flashcard: 'Vocabulary flashcards',
   explanation: 'Concept explanation',
   fill_in_blanks: 'Multiple-choice fill-in',

@@ -133,8 +133,11 @@ export default function WordMeaningMatch({
     let correctCount = 0;
 
     matches.forEach((match) => {
+      const aText = columnA[match.aIndex].text;
       const bItem = columnB[match.bIndex];
-      const isCorrect = bItem.correctPairIndex === match.aIndex;
+      // Only check if the actual word strings form a valid pair — not index-based
+      const isCorrect = !bItem.isDistractor &&
+        currentExercise.pairs.some(pair => pair[0] === aText && pair[1] === bItem.text);
 
       newStatuses.set(match.aIndex, isCorrect ? "correct" : "incorrect");
 
@@ -384,10 +387,10 @@ export default function WordMeaningMatch({
                         )
                         .map((match) => {
                           const aText = columnA[match.aIndex].text;
-                          const correctBItem = columnB.find(
-                            (b) => b.correctPairIndex === match.aIndex
+                          const correctPair = currentExercise.pairs.find(
+                            (pair) => pair[0] === aText
                           );
-                          return `${aText} → ${correctBItem?.text || "?"}`;
+                          return `${aText} → ${correctPair?.[1] || "?"}`;
                         })
                         .join(" • ")}
                     </div>
@@ -413,10 +416,10 @@ export default function WordMeaningMatch({
                           )
                           .map((match) => {
                             const aText = columnA[match.aIndex].text;
-                            const correctBItem = columnB.find(
-                              (b) => b.correctPairIndex === match.aIndex
+                            const correctPair = currentExercise.pairs.find(
+                              (pair) => pair[0] === aText
                             );
-                            return `${aText} → ${correctBItem?.text || "?"}`;
+                            return `${aText} → ${correctPair?.[1] || "?"}`;
                           })
                           .join(", "),
                         targetLanguage: "Spanish",
