@@ -8,6 +8,7 @@ import { AiAssistModule } from './modules/ai-assist/ai-assist.module';
 import { TtsModule } from './modules/tts/tts.module';
 import { TimelineModule } from './modules/timeline/timeline.module';
 import { DayToDayAgentModule } from './modules/day-to-day-agent/day-to-day-agent.module';
+import { DailyLoopModule } from './modules/daily-loop/daily-loop.module';
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { DayToDayAgentModule } from './modules/day-to-day-agent/day-to-day-agent
     TtsModule,
     TimelineModule,
     DayToDayAgentModule,
+    DailyLoopModule,
   ],
   controllers: [AppController],
   providers: [AppService],
