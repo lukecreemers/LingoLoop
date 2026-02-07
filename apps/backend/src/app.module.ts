@@ -7,6 +7,7 @@ import { TranslationMarkingModule } from './modules/translation-marking/translat
 import { AiAssistModule } from './modules/ai-assist/ai-assist.module';
 import { TtsModule } from './modules/tts/tts.module';
 import { TimelineModule } from './modules/timeline/timeline.module';
+import { DayToDayAgentModule } from './modules/day-to-day-agent/day-to-day-agent.module';
 
 @Module({
   imports: [
@@ -16,6 +17,7 @@ import { TimelineModule } from './modules/timeline/timeline.module';
     AiAssistModule,
     TtsModule,
     TimelineModule,
+    DayToDayAgentModule,
   ],
   controllers: [AppController],
   providers: [AppService],

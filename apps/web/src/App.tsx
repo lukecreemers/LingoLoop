@@ -6,6 +6,7 @@ import type { CreateLessonFormData } from "./components/lesson/LessonCreator";
 import { useSectionedLessonStore } from "./stores/useSectionedLessonStore";
 import { useRoadmapStore } from "./stores/useRoadmapStore";
 import Roadmap from "./features/roadmap/Roadmap";
+import DayToDayChat from "./features/day-to-day/DayToDayChat";
 
 // Demo lesson data for testing the lesson player (now in sectioned format)
 const demoLessonData: SectionedLesson = {
@@ -328,7 +329,7 @@ Now let's practice these phrases!`,
   ],
 };
 
-type AppView = "home" | "creator" | "player" | "roadmap" | "roadmap-lesson";
+type AppView = "home" | "creator" | "player" | "roadmap" | "roadmap-lesson" | "day-to-day";
 
 // ============================================================================
 // Pipeline logging helper — logs full lesson pipeline to browser console
@@ -408,7 +409,7 @@ function logLessonPipeline(data: {
 }
 
 function App() {
-  const [view, setView] = useState<AppView>("home");
+  const [view, setView] = useState<AppView>("day-to-day");
 
   const setLesson = useSectionedLessonStore((s) => s.setLesson);
   const reset = useSectionedLessonStore((s) => s.reset);
@@ -625,6 +626,10 @@ function App() {
   };
 
   // Render based on current view
+  if (view === "day-to-day") {
+    return <DayToDayChat />;
+  }
+
   if (view === "creator") {
     return <LessonCreator onSubmit={handleLessonFormSubmit} />;
   }

@@ -47,21 +47,42 @@ export default function FillInBlanks({
     setExerciseResults(new Array(data.exercises.length).fill("pending"));
   }, [data.exercises.length]);
 
-  // Deduplicate and shuffle word options for current exercise
+  // Build word options: keep duplicate answers, but filter out distractors
+  // that duplicate an answer (so duplicates only appear as many times as needed)
   const wordOptions = useMemo(() => {
-    const allWords = [
-      ...currentExercise.answers,
-      ...currentExercise.distractors,
-    ];
-    // Remove duplicates
-    const uniqueWords = [...new Set(allWords)];
+    const answers = [...currentExercise.answers];
+    // Only add distractors that aren't already covered by answers
+    const answerCounts = new Map<string, number>();
+    for (const a of answers) {
+      answerCounts.set(a, (answerCounts.get(a) || 0) + 1);
+    }
+    const distractors = currentExercise.distractors.filter(
+      (d) => !answerCounts.has(d)
+    );
+    const allWords = [...answers, ...distractors];
     // Shuffle
-    return uniqueWords.sort(() => Math.random() - 0.5);
+    return allWords.sort(() => Math.random() - 0.5);
   }, [currentExercise]);
 
-  const usedWords = useMemo(() => {
-    return new Set(filledAnswers.filter((w): w is string => w !== null));
-  }, [filledAnswers]);
+  // Track which individual chips are "used" (count-based, not set-based)
+  // so duplicate words each get their own used/available state
+  const chipUsedStates = useMemo(() => {
+    // Count how many times each word is placed in blanks
+    const usedCounts = new Map<string, number>();
+    for (const w of filledAnswers) {
+      if (w !== null) {
+        usedCounts.set(w, (usedCounts.get(w) || 0) + 1);
+      }
+    }
+    // For each chip, mark it as used only up to the number of placed instances
+    const tracker = new Map<string, number>();
+    return wordOptions.map((word) => {
+      const chipIndex = tracker.get(word) || 0;
+      const totalUsed = usedCounts.get(word) || 0;
+      tracker.set(word, chipIndex + 1);
+      return chipIndex < totalUsed;
+    });
+  }, [wordOptions, filledAnswers]);
 
   const handleDrop = useCallback((slotIndex: number, word: string) => {
     setFilledAnswers((prev) => {
@@ -231,7 +252,7 @@ export default function FillInBlanks({
               <WordChip
                 key={`${word}-${index}`}
                 word={word}
-                isUsed={usedWords.has(word)}
+                isUsed={chipUsedStates[index]}
               />
             ))}
           </div>
