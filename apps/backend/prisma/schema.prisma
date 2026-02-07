@@ -1,0 +1,316 @@
+// apps/backend/prisma/schema.prisma
+
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// --------------------------------------
+// USER & CORE
+// --------------------------------------
+
+enum UserLevel {
+  BEGINNER
+  INTERMEDIATE
+  ADVANCED
+}
+
+model User {
+  id              String    @id @default(uuid())
+  email           String    @unique
+  name            String?
+  
+  // A user can learn multiple languages. 
+  // Each language is a separate "Course" with its own progress.
+  courses         LanguageCourse[]
+  
+  // SRS Stats are global per user+word
+  wordProgress      UserWordProgress[]
+  phraseProgress    UserPhraseProgress[]
+  
+  // Global Content Log (prevents reuse across all courses if needed, 
+  // or can be filtered by language)
+  generatedContent  GeneratedContentLog[]
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+// --------------------------------------
+// LANGUAGE COURSE (The "Container" for a language)
+// --------------------------------------
+
+model LanguageCourse {
+  id              String    @id @default(uuid())
+  userId          String
+  user            User      @relation(fields: [userId], references: [id])
+  
+  targetLanguage  String    // e.g. "Spanish"
+  nativeLanguage  String    // e.g. "English"
+  level           UserLevel @default(BEGINNER)
+  
+  // AI Personalization (Scoped to this language)
+  preferences        Json?  // e.g. "Likes football topics"
+  markingPreferences Json?  // e.g. "Strict on accents"
+
+  // One Roadmap & Daily Loop per language
+  roadmap            Roadmap?
+  dailyLoop          DailyLoop?
+
+  isActive           Boolean  @default(true) // Which course is currently selected?
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([userId, targetLanguage]) // Cannot have 2 Spanish courses for same user
+}
+
+// --------------------------------------
+// CURRICULUM (ROADMAP)
+// --------------------------------------
+
+model Roadmap {
+  id        String         @id @default(uuid())
+  courseId  String         @unique
+  course    LanguageCourse @relation(fields: [courseId], references: [id])
+  
+  weeks     RoadmapWeek[]
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model RoadmapWeek {
+  id          String   @id @default(uuid())
+  roadmapId   String
+  roadmap     Roadmap  @relation(fields: [roadmapId], references: [id])
+  
+  weekNumber  Int
+  title       String
+  description String?
+  
+  lessons     Lesson[]
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// --------------------------------------
+// LESSON STRUCTURE (Lesson -> Section -> Unit)
+// --------------------------------------
+
+model Lesson {
+  id          String   @id @default(uuid())
+  weekId      String?
+  week        RoadmapWeek? @relation(fields: [weekId], references: [id])
+  
+  title       String
+  description String?
+  isUserMade  Boolean  @default(false)
+  
+  completed   Boolean  @default(false)
+  
+  sections    Section[]
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Section {
+  id          String   @id @default(uuid())
+  lessonId    String
+  lesson      Lesson   @relation(fields: [lessonId], references: [id])
+  
+  title       String   // The instruction/topic for this section
+  order       Int      // 0, 1, 2...
+  
+  units       Unit[]
+  
+  createdAt   DateTime @default(now())
+}
+
+// Matches apps/backend/src/shared/types/custom-lesson-generation.types.ts
+enum UnitType {
+  context
+  flashcard
+  explanation
+  fill_in_blanks
+  word_match
+  write_in_blanks
+  translation
+  conversation
+  writing_practice
+  word_order
+}
+
+model Unit {
+  id          String   @id @default(uuid())
+  sectionId   String
+  section     Section  @relation(fields: [sectionId], references: [id])
+  
+  type        UnitType
+  title       String   // Display name
+  
+  // "instructions" from your types. Used for AI regeneration.
+  instructions String  
+  
+  // The actual AI-generated content (JSON)
+  content     Json
+
+  // History of generations for this unit (for "Redo" feature)
+  previousVersions Json? @default("[]") 
+  
+  completed   Boolean  @default(false)
+  order       Int      @default(0)
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// --------------------------------------
+// DAILY LOOP (Config & State)
+// --------------------------------------
+
+model DailyLoop {
+  id          String         @id @default(uuid())
+  courseId    String         @unique
+  course      LanguageCourse @relation(fields: [courseId], references: [id])
+  
+  modules     DailyLoopModule[]
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+enum DailyModuleType {
+  FLASHCARDS
+  READING
+  WRITING
+  CUSTOM_LESSON
+  REVIEW
+}
+
+model DailyLoopModule {
+  id          String   @id @default(uuid())
+  dailyLoopId String
+  dailyLoop   DailyLoop @relation(fields: [dailyLoopId], references: [id])
+
+  type        DailyModuleType
+  order       Int      // Sequence: 0, 1, 2...
+
+  // Module-specific config
+  // READING: { "topics": ["news"], "length": "short" }
+  // FLASHCARDS: { "newCards": 5, "reviewCards": 20 }
+  config      Json     
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// --------------------------------------
+// VOCABULARY & SRS (Global / Shared)
+// --------------------------------------
+
+model Lemma {
+  id          String   @id @default(uuid())
+  baseWord    String   // "tener"
+  language    String   // "es"
+  audioUrl    String?
+  
+  words       Word[]
+}
+
+model Word {
+  id          String   @id @default(uuid())
+  text        String   // "tengo"
+  translation String
+  language    String   // "es"
+  audioUrl    String?
+  imageUrl    String?
+  
+  lemmaId     String?
+  lemma       Lemma?   @relation(fields: [lemmaId], references: [id])
+  
+  userProgress UserWordProgress[]
+}
+
+model UserWordProgress {
+  id          String   @id @default(uuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  
+  wordId      String
+  word        Word     @relation(fields: [wordId], references: [id])
+  
+  // SRS Fields (SM-2)
+  dueAt         DateTime
+  intervalDays  Int      @default(0)
+  easeFactor    Float    @default(2.5)
+  reps          Int      @default(0)
+  lapses        Int      @default(0)
+  
+  lastReviewedAt DateTime?
+  createdAt     DateTime @default(now())
+
+  @@unique([userId, wordId])
+}
+
+model Phrase {
+  id          String   @id @default(uuid())
+  text        String
+  translation String
+  audioUrl    String?
+  language    String
+  
+  userProgress UserPhraseProgress[]
+}
+
+model UserPhraseProgress {
+  id          String   @id @default(uuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  
+  phraseId    String
+  phrase      Phrase   @relation(fields: [phraseId], references: [id])
+  
+  // SRS Fields
+  dueAt         DateTime
+  intervalDays  Int      @default(0)
+  easeFactor    Float    @default(2.5)
+  reps          Int      @default(0)
+  lapses        Int      @default(0)
+  
+  lastReviewedAt DateTime?
+  createdAt     DateTime @default(now())
+
+  @@unique([userId, phraseId])
+}
+
+// --------------------------------------
+// CONTENT LOGS (Duplication Prevention)
+// --------------------------------------
+
+enum ContentType {
+  READING
+  WRITING
+}
+
+model GeneratedContentLog {
+  id          String      @id @default(uuid())
+  userId      String
+  user        User        @relation(fields: [userId], references: [id])
+  
+  // Log which language this was for, so we don't block "Apple" in French 
+  // just because we wrote about it in Spanish
+  language    String      
+  
+  type        ContentType
+  contentHash String      
+  textContent String?     
+  
+  createdAt   DateTime    @default(now())
+}
