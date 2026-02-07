@@ -51,3 +51,4 @@ export * from './timeline.types';
 export * from './lesson-structure.types';
 export * from './create-structured-lesson.dto';
 export * from './curriculum.types';
+export * from './section-chat.dto';

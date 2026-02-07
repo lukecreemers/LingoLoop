@@ -87,12 +87,17 @@ interface NodeProps {
   unitName: string;
   status: NodeStatus;
   isLast: boolean;
+  nextStatus?: NodeStatus;
   onClick: () => void;
 }
 
-function RoadmapNode({ unitType, unitName, status, isLast, onClick }: NodeProps) {
+function RoadmapNode({ unitType, unitName, status, isLast, nextStatus, onClick }: NodeProps) {
   const config = getUnitConfig(unitType);
   const styles = getNodeStyles(status);
+
+  // Connector line color: colored if the current node is completed
+  const connectorColor =
+    status === "completed" ? "bg-emerald-400" : "bg-zinc-200";
 
   return (
     <div className="flex flex-col items-center">
@@ -162,7 +167,7 @@ function RoadmapNode({ unitType, unitName, status, isLast, onClick }: NodeProps)
 
       {/* Connector line to next node */}
       {!isLast && (
-        <div className="w-0.5 h-8 bg-zinc-200 mt-2" />
+        <div className={`w-0.5 h-8 mt-2 transition-colors duration-500 ${connectorColor}`} />
       )}
     </div>
   );
@@ -266,6 +271,9 @@ export default function LessonRoadmapView({
                   {section.units.map((unit, unitIndex) => {
                     const status = getNodeStatus(sectionIndex, unitIndex);
                     const isLast = unitIndex === section.units.length - 1;
+                    const nextStatus = !isLast
+                      ? getNodeStatus(sectionIndex, unitIndex + 1)
+                      : undefined;
 
                     return (
                       <RoadmapNode
@@ -276,6 +284,7 @@ export default function LessonRoadmapView({
                         }
                         status={status}
                         isLast={isLast}
+                        nextStatus={nextStatus}
                         onClick={() =>
                           handleNodeClick(sectionIndex, unitIndex, status)
                         }
@@ -284,16 +293,22 @@ export default function LessonRoadmapView({
                   })}
                 </div>
 
-                {/* Section connector */}
-                {sectionIndex < lessonData.sections.length - 1 && (
-                  <div className="flex justify-center mt-4">
-                    <div className="flex flex-col items-center gap-1">
-                      <div className="w-1 h-3 bg-zinc-300" />
-                      <div className="w-3 h-3 bg-zinc-300 rotate-45" />
-                      <div className="w-1 h-3 bg-zinc-300" />
+                {/* Section connector — colors in when all units in section are complete */}
+                {sectionIndex < lessonData.sections.length - 1 && (() => {
+                  const allSectionComplete = section.units.every(
+                    (_, ui) => getNodeStatus(sectionIndex, ui) === "completed"
+                  );
+                  const connectorCls = allSectionComplete ? "bg-emerald-400" : "bg-zinc-300";
+                  return (
+                    <div className="flex justify-center mt-4">
+                      <div className="flex flex-col items-center gap-1">
+                        <div className={`w-1 h-3 transition-colors duration-500 ${connectorCls}`} />
+                        <div className={`w-3 h-3 rotate-45 transition-colors duration-500 ${connectorCls}`} />
+                        <div className={`w-1 h-3 transition-colors duration-500 ${connectorCls}`} />
+                      </div>
                     </div>
-                  </div>
-                )}
+                  );
+                })()}
               </div>
             );
           })}

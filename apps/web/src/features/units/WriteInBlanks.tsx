@@ -139,7 +139,7 @@ export default function WriteInBlanks({
   const correctAnswers = currentExercise.blanks.map((b) => b.correctAnswer);
 
   return (
-    <div className="h-[calc(100vh-50px)] bg-bauhaus-white text-black font-sans flex flex-col selection:bg-rose-200 overflow-hidden">
+    <div className="h-full bg-bauhaus-white text-black font-sans flex flex-col selection:bg-rose-200 overflow-hidden">
       {/* Header - Fixed Height */}
       <header className="px-8 pt-8 pb-4 w-full shrink-0">
         <div className="flex items-end justify-between mb-6 border-b-4 border-black pb-4">

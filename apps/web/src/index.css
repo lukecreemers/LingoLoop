@@ -28,12 +28,12 @@
 
 body {
   margin: 0;
-  display: flex;
-  place-items: center;
   min-width: 320px;
-  min-height: 100vh;
+  height: 100vh;
+  height: 100dvh;
   background-color: var(--bauhaus-white);
   color: var(--bauhaus-black);
+  overflow: hidden;
 }
 
 /* Custom Bauhaus Utilities */

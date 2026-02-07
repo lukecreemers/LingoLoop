@@ -8,7 +8,7 @@ import { WPMarkingOutputSchema } from '../../shared/types/writing-practice.types
 export const WP_MARKING_PROMPT_TEMPLATE = `### TASK
 
 Reconstruct the Student's Response exactly as written.
-Wrap any mistakes in an <err> tag.
+Wrap any mistakes in an <err> tag with a severity level.
 
 ### CONTEXT
 - User Level: {{userLevel}}
@@ -21,20 +21,36 @@ Wrap any mistakes in an <err> tag.
 ### STUDENT'S RESPONSE
 "{{userResponse}}"
 
+### ERROR SEVERITY LEVELS
+
+**minor** — Cosmetic or stylistic issues that don't affect meaning:
+- Missing or wrong accent marks (e.g. "esta" vs "está")
+- Missing or wrong punctuation (e.g. missing ¿ or ¡)
+- Capitalization errors
+- Minor spelling typos that don't change the word
+
+**major** — Errors that affect grammar, meaning, or comprehension:
+- Wrong gender/number agreement
+- Wrong verb conjugation or tense
+- Missing or wrong words that change meaning
+- Word order errors
+- Wrong prepositions
+
 ### SCORING RUBRIC
 - 90-100: Perfect or near-native quality, natural phrasing
-- 70-89: Fully understandable, minor slips (accents, punctuation, word choice)
-- 50-69: Grammatical errors that do not hide the meaning
+- 75-89: Fully understandable, only minor slips (accents, punctuation). Minor errors alone should NOT drop below 75.
+- 50-74: Grammatical errors that do not hide the meaning
 - 30-49: Errors that make parts difficult to understand
 - 0-29: Major issues that make it hard to follow
 
 Adjust expectations based on user level - be encouraging for beginners!
+Be lenient with minor errors — they should have minimal impact on the score.
 
 ### OUTPUT FORMAT
 
 Return JSON with:
 1. markedText: The student's response with inline <err> tags
-   Format: <err fix="Correct Version" why="Reason">Student's Wrong Word</err>
+   Format: <err severity="major|minor" fix="Correct Version" why="Reason">Student's Wrong Word</err>
 2. overallScore: Number 0-100
 3. feedback: Encouraging but constructive feedback (2-3 sentences)
 4. modelAnswer: Student's response with all mistakes fixed (preserve their ideas/voice!)
@@ -47,7 +63,7 @@ Response: "Yo despierto a las siete. Yo como el desayuno."
 
 Output:
 {
-  "markedText": "<err fix=\\"Me despierto\\" why=\\"Reflexive verb: despertarse requires 'me'\\">Yo despierto</err> a las siete. Yo como <err fix=\\"el\\" why=\\"Omit article: we say 'como desayuno' not 'como el desayuno'\\">el</err> desayuno.",
+  "markedText": "<err severity=\\"major\\" fix=\\"Me despierto\\" why=\\"Reflexive verb: despertarse requires 'me'\\">Yo despierto</err> a las siete. Yo como <err severity=\\"minor\\" fix=\\"\\" why=\\"Omit article: 'como desayuno' is more natural than 'como el desayuno'\\">el</err> desayuno.",
   "overallScore": 65,
   "feedback": "Good effort! You communicated your morning routine clearly. Focus on reflexive verbs and when to use articles with meals.",
   "modelAnswer": "Me despierto a las siete. Desayuno por la mañana.",

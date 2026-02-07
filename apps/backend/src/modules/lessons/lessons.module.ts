@@ -15,5 +15,6 @@ import { StructuredLessonService } from './structured-lesson.service';
     LessonDebugService,
     StructuredLessonService,
   ],
+  exports: [StructuredLessonService],
 })
 export class LessonsModule {}

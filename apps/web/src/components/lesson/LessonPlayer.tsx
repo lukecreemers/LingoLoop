@@ -8,6 +8,9 @@ import {
 import UnitDispatcher from "./UnitDispatcher";
 import LessonRoadmapView from "./LessonRoadmapView";
 import SectionIntro from "./SectionIntro";
+import SectionCheckIn from "./SectionCheckIn";
+import MaestroLoading from "./MaestroLoading";
+import LessonReview from "./LessonReview";
 
 interface LessonPlayerProps {
   onClose?: () => void;
@@ -29,6 +32,7 @@ export default function LessonPlayer({
   const goToRoadmap = useSectionedLessonStore((s) => s.goToRoadmap);
   const goToUnit = useSectionedLessonStore((s) => s.goToUnit);
   const advanceToNextUnit = useSectionedLessonStore((s) => s.advanceToNextUnit);
+  const advanceFromCheckIn = useSectionedLessonStore((s) => s.advanceFromCheckIn);
 
   const currentUnit = useCurrentUnit();
   const { score, total } = useTotalScore();
@@ -82,73 +86,12 @@ export default function LessonPlayer({
   // RENDER STATES
   // ============================
 
+  const generationProgress = useSectionedLessonStore((s) => s.generationProgress);
+  const results = useSectionedLessonStore((s) => s.results);
+
   // Loading / generating state
   if (status === "generating") {
-    return (
-      <div className="h-full bg-bauhaus-white flex flex-col items-center justify-center">
-        <div className="text-center">
-          <h2 className="text-3xl font-black tracking-tighter mb-4">
-            Maestro is composing<span className="text-bauhaus-blue">...</span>
-          </h2>
-          <p className="text-zinc-400 mb-6 text-sm">
-            Building your personalized lesson
-          </p>
-          <div className="flex justify-center gap-1">
-            {[0, 1, 2].map((i) => (
-              <div
-                key={i}
-                className="w-3 h-3 bg-bauhaus-blue animate-bounce"
-                style={{ animationDelay: `${i * 150}ms` }}
-              />
-            ))}
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // Completed state
-  if (status === "completed") {
-    return (
-      <div className="h-full bg-bauhaus-white flex flex-col items-center justify-center p-8">
-        <div className="text-center max-w-md">
-          <div className="text-6xl mb-6">🎉</div>
-          <h2 className="text-4xl font-black tracking-tighter mb-4">
-            Lesson Complete<span className="text-bauhaus-green">!</span>
-          </h2>
-
-          {total > 0 && (
-            <div className="mb-8">
-              <p className="text-zinc-500 mb-2">Final Score</p>
-              <div className="text-5xl font-black font-mono">
-                <span className="text-bauhaus-green">{score}</span>
-                <span className="text-zinc-300 mx-2">/</span>
-                <span>{total}</span>
-              </div>
-            </div>
-          )}
-
-          <div className="flex gap-4 justify-center">
-            <button
-              onClick={goToRoadmap}
-              className="px-8 py-4 text-lg font-bold uppercase tracking-widest border-2 border-black
-                bg-white text-black hover:bg-zinc-100 bauhaus-shadow
-                transition-all duration-100 active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
-            >
-              View Map
-            </button>
-            <button
-              onClick={onClose}
-              className="px-10 py-4 text-lg font-bold uppercase tracking-widest border-2 border-black
-                bg-bauhaus-blue text-white hover:bg-blue-700 bauhaus-shadow
-                transition-all duration-100 active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
-            >
-              Continue
-            </button>
-          </div>
-        </div>
-      </div>
-    );
+    return <MaestroLoading progress={generationProgress} />;
   }
 
   // Not loaded
@@ -161,12 +104,26 @@ export default function LessonPlayer({
   }
 
   // ============================
-  // PLAYING STATE - sub views
+  // ROADMAP — accessible from ANY status (playing, completed, etc.)
   // ============================
-
-  // Roadmap view
   if (lessonView === "roadmap") {
     return <LessonRoadmapView lessonData={lessonData} onClose={onClose} />;
+  }
+
+  // ============================
+  // COMPLETED — full lesson review
+  // ============================
+  if (status === "completed") {
+    return (
+      <LessonReview
+        lessonData={lessonData}
+        results={results}
+        score={score}
+        total={total}
+        onViewMap={goToRoadmap}
+        onClose={onClose}
+      />
+    );
   }
 
   // Section intro view
@@ -178,6 +135,20 @@ export default function LessonPlayer({
         sectionIndex={currentSectionIndex}
         totalSections={lessonData.sections.length}
         onContinue={handleSectionIntroContinue}
+      />
+    );
+  }
+
+  // Section check-in view (between sections — "does everything make sense?")
+  if (lessonView === "section-check-in") {
+    const section = lessonData.sections[currentSectionIndex];
+    return (
+      <SectionCheckIn
+        sectionName={section?.sectionInstruction ?? `Section ${currentSectionIndex + 1}`}
+        sectionIndex={currentSectionIndex}
+        lessonData={lessonData}
+        onContinue={advanceFromCheckIn}
+        onOpenMap={goToRoadmap}
       />
     );
   }

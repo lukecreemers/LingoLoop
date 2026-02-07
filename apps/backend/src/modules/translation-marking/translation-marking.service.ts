@@ -9,7 +9,7 @@ export class TranslationMarkingService {
 
   constructor() {
     this.llm = new ChatAnthropic({
-      model: 'claude-haiku-4-5',
+      model: 'claude-sonnet-4-5',
       apiKey: process.env.ANTHROPIC_API_KEY,
       temperature: 0.5,
     });

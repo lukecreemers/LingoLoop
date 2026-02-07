@@ -19,7 +19,7 @@ export const TM_PROMPT_TEMPLATE = `
 ### TASK
 
 Reconstruct the User's Translation exactly as written.
-Wrap any mistakes in an <err> tag.
+Wrap any mistakes in an <err> tag with a severity level.
 
 ### THE ANSWER KEY
 
@@ -29,25 +29,42 @@ Wrap any mistakes in an <err> tag.
 
 "{{userTranslation}}"
 
+### ERROR SEVERITY LEVELS
+
+**minor** — Cosmetic or stylistic issues that don't affect meaning:
+- Missing or wrong accent marks (e.g. "esta" vs "está")
+- Missing or wrong punctuation (e.g. missing ¿ or ¡)
+- Capitalization errors
+- Minor spelling typos that don't change the word
+
+**major** — Errors that affect grammar, meaning, or comprehension:
+- Wrong gender/number agreement
+- Wrong verb conjugation or tense
+- Missing or wrong words that change meaning
+- Word order errors
+- Wrong prepositions
+
 ### SCORING RUBRIC (AI GUIDELINE)
 - 10: Perfect or natural/native equivalent.
-- 8-9: Fully understandable, minor slips (accents, punctuation).
+- 8-9: Fully understandable, only minor slips (accents, punctuation). Minor errors alone should NOT drop below 8.
 - 5-7: Grammatical errors (gender, number, basic tense) that do not hide the meaning.
 - 1-4: Major tense confusion or word-order issues that make it hard to follow.
 
 ## Important Details
 1. The answer key is only a reference. If the user's translation uses wording or phrases that convey the same message and meaning, do not mark the user down for that.
 2. The user's translation should be reconstructed exactly as written (with included error tags). Do not add or remove any words or phrases.
+3. Be lenient with minor errors — they should have minimal impact on the score.
+
 ### OUTPUT FORMAT
 
 Return ONLY the reconstructed string with inline tags.
-Format: <err fix="Correct Version" why="Reason">User's Wrong Word or Phrase</err>
+Format: <err severity="major|minor" fix="Correct Version" why="Reason">User's Wrong Word or Phrase</err>
 
 ### EXAMPLE
 
 Answer Key: "Las sillas rojas están en la sala."
-User Attempt: "Las sillas rojos están en el sala."
-Output: Las sillas <err fix="rojas" why="Gender agreement: sillas is feminine">rojos</err> están en <err fix="la" why="Article agreement: sala is feminine">el</err> sala.
+User Attempt: "Las sillas rojos estan en el sala."
+Output: Las sillas <err severity="major" fix="rojas" why="Gender agreement: sillas is feminine">rojos</err> <err severity="minor" fix="están" why="Missing accent mark on á">estan</err> en <err severity="major" fix="la" why="Article agreement: sala is feminine">el</err> sala.
 `.trim();
 
 // ============================================================================

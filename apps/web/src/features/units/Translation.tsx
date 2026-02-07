@@ -52,11 +52,13 @@ interface TextSegment {
   content: string;
   fix?: string;
   why?: string;
+  severity?: "minor" | "major";
 }
 
 function parseMarkedText(markedText: string): TextSegment[] {
   const segments: TextSegment[] = [];
-  const regex = /<err\s+fix="([^"]*)"\s+why="([^"]*)">([^<]*)<\/err>/g;
+  // Support both old format (no severity) and new format (with severity)
+  const regex = /<err\s+(?:severity="([^"]*)"\s+)?fix="([^"]*)"\s+why="([^"]*)">([^<]*)<\/err>/g;
 
   let lastIndex = 0;
   let match;
@@ -73,9 +75,10 @@ function parseMarkedText(markedText: string): TextSegment[] {
     // Add the error segment
     segments.push({
       type: "error",
-      content: match[3], // User's wrong word
-      fix: match[1], // Correct version
-      why: match[2], // Reason
+      content: match[4], // User's wrong word
+      fix: match[2], // Correct version
+      why: match[3], // Reason
+      severity: (match[1] as "minor" | "major") || "major",
     });
 
     lastIndex = match.index + match[0].length;
@@ -157,7 +160,7 @@ export default function Translation({ data, plan: _plan, onComplete }: Translati
   };
 
   return (
-    <div className="h-[calc(100vh-50px)] bg-bauhaus-white text-black font-sans flex flex-col selection:bg-blue-200 overflow-hidden">
+    <div className="h-full bg-bauhaus-white text-black font-sans flex flex-col selection:bg-blue-200 overflow-hidden">
       {/* Header */}
       <header className="px-8 pt-8 pb-4 w-full shrink-0">
         <div className="flex items-end justify-between mb-4 border-b-4 border-black pb-4">
@@ -241,16 +244,24 @@ export default function Translation({ data, plan: _plan, onComplete }: Translati
                   if (segment.type === "text") {
                     return <span key={index}>{segment.content}</span>;
                   }
+                  const isMinor = segment.severity === "minor";
                   return (
                     <span
                       key={index}
                       className="relative group inline-block"
                     >
-                      <span className="bg-rose-100 border-b-2 border-bauhaus-red text-bauhaus-red px-1 cursor-help">
+                      <span className={`px-1 cursor-help border-b-2 ${
+                        isMinor
+                          ? "bg-amber-50 border-amber-400 text-amber-700 border-dashed"
+                          : "bg-rose-100 border-bauhaus-red text-bauhaus-red"
+                      }`}>
                         {segment.content}
                       </span>
                       {/* Tooltip */}
                       <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-black text-white text-sm opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10">
+                        {isMinor && (
+                          <span className="block text-xs text-amber-300 font-bold uppercase tracking-wider mb-1">Minor</span>
+                        )}
                         <span className="font-bold text-bauhaus-green">
                           {segment.fix}
                         </span>
@@ -267,11 +278,24 @@ export default function Translation({ data, plan: _plan, onComplete }: Translati
 
               {/* Error Legend */}
               {hasErrors && (
-                <div className="mt-4 pt-4 border-t border-zinc-200 text-sm text-zinc-500">
-                  <span className="bg-rose-100 border-b-2 border-bauhaus-red text-bauhaus-red px-1">
-                    Highlighted text
-                  </span>{" "}
-                  = errors. Hover for corrections.
+                <div className="mt-4 pt-4 border-t border-zinc-200 text-sm text-zinc-500 flex flex-wrap gap-4">
+                  {parsedMarkedText.some((s) => s.severity === "major") && (
+                    <span>
+                      <span className="bg-rose-100 border-b-2 border-bauhaus-red text-bauhaus-red px-1">
+                        Red
+                      </span>{" "}
+                      = major errors
+                    </span>
+                  )}
+                  {parsedMarkedText.some((s) => s.severity === "minor") && (
+                    <span>
+                      <span className="bg-amber-50 border-b-2 border-dashed border-amber-400 text-amber-700 px-1">
+                        Amber
+                      </span>{" "}
+                      = minor (accents, punctuation)
+                    </span>
+                  )}
+                  <span className="text-zinc-400">Hover for corrections.</span>
                 </div>
               )}
             </div>

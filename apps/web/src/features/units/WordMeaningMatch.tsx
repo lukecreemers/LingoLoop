@@ -187,7 +187,7 @@ export default function WordMeaningMatch({
   };
 
   return (
-    <div className="h-[calc(100vh-50px)] bg-bauhaus-white text-black font-sans flex flex-col selection:bg-rose-200 overflow-x-hidden overflow-y-auto">
+    <div className="h-full bg-bauhaus-white text-black font-sans flex flex-col selection:bg-rose-200 overflow-x-hidden overflow-y-auto">
       {/* Header */}
       <header className="px-8 pt-8 pb-4 w-full shrink-0">
         <div className="flex items-end justify-between mb-6 border-b-4 border-black pb-4">

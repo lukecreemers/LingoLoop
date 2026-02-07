@@ -15,8 +15,16 @@ export interface UnitResult {
 // Lesson status (top level)
 export type LessonStatus = "idle" | "generating" | "playing" | "completed";
 
+// Generation progress (for loading screen)
+export interface GenerationProgress {
+  stage: "structure" | "parsing" | "units" | "summaries" | "complete" | "error";
+  message: string;
+  current?: number;
+  total?: number;
+}
+
 // Sub-view when status is "playing"
-export type LessonView = "roadmap" | "section-intro" | "unit";
+export type LessonView = "roadmap" | "section-intro" | "section-check-in" | "unit";
 
 // Node status for the roadmap
 export type NodeStatus = "locked" | "unlocked" | "active" | "completed";
@@ -31,6 +39,9 @@ interface SectionedLessonState {
   startTime: number | null;
   isRedoing: boolean;
   isRedoingSection: boolean;
+
+  // Generation progress (for loading screen)
+  generationProgress: GenerationProgress | null;
 
   // Lesson roadmap view state
   lessonView: LessonView;
@@ -54,6 +65,13 @@ interface SectionedLessonState {
   updateSection: (sectionIndex: number, section: CompiledSection) => void;
   setIsRedoing: (value: boolean) => void;
   setIsRedoingSection: (value: boolean) => void;
+  setGenerationProgress: (progress: GenerationProgress | null) => void;
+
+  // Insert extra sections into the lesson (from lesson-update-structure)
+  insertSectionsAfterCurrent: (newSections: CompiledSection[]) => void;
+
+  // Advance from check-in to the next section intro (called by "All Good" button)
+  advanceFromCheckIn: () => void;
 
   // New navigation actions for roadmap flow
   goToRoadmap: () => void;
@@ -80,6 +98,7 @@ export const useSectionedLessonStore = create<SectionedLessonState>(
     startTime: null,
     isRedoing: false,
     isRedoingSection: false,
+    generationProgress: null,
     lessonView: "roadmap",
     completedUnits: new Set<string>(),
     furthestSectionIndex: 0,
@@ -94,6 +113,7 @@ export const useSectionedLessonStore = create<SectionedLessonState>(
         results: [],
         status: "idle",
         startTime: null,
+        generationProgress: null,
         lessonView: "roadmap",
         completedUnits: new Set<string>(),
         furthestSectionIndex: 0,
@@ -160,6 +180,7 @@ export const useSectionedLessonStore = create<SectionedLessonState>(
         startTime: null,
         isRedoing: false,
         isRedoingSection: false,
+        generationProgress: null,
         lessonView: "roadmap",
         completedUnits: new Set<string>(),
         furthestSectionIndex: 0,
@@ -195,6 +216,75 @@ export const useSectionedLessonStore = create<SectionedLessonState>(
 
     setIsRedoing: (value) => set({ isRedoing: value }),
     setIsRedoingSection: (value) => set({ isRedoingSection: value }),
+    setGenerationProgress: (progress) => set({ generationProgress: progress }),
+
+    // ====== Insert extra sections (lesson-update-structure) ======
+
+    insertSectionsAfterCurrent: (newSections) => {
+      const { lessonData, currentSectionIndex } = get();
+      if (!lessonData) return;
+
+      // Re-index the new sections to continue after the current ones
+      const insertAt = currentSectionIndex + 1;
+      const reindexedSections = newSections.map((section, i) => ({
+        ...section,
+        sectionIndex: insertAt + i,
+      }));
+
+      // Build the new sections array: [existing before insert] + [new] + [existing after insert, re-indexed]
+      const before = lessonData.sections.slice(0, insertAt);
+      const after = lessonData.sections.slice(insertAt).map((section, i) => ({
+        ...section,
+        sectionIndex: insertAt + reindexedSections.length + i,
+      }));
+
+      const updatedSections = [...before, ...reindexedSections, ...after];
+
+      // Also update sectionInstructions
+      const newSectionInstructions = reindexedSections.map(
+        (s) => s.sectionInstruction
+      );
+      const instructionsBefore = lessonData.sectionInstructions.slice(
+        0,
+        insertAt
+      );
+      const instructionsAfter =
+        lessonData.sectionInstructions.slice(insertAt);
+      const updatedInstructions = [
+        ...instructionsBefore,
+        ...newSectionInstructions,
+        ...instructionsAfter,
+      ];
+
+      set({
+        lessonData: {
+          ...lessonData,
+          sections: updatedSections,
+          sectionInstructions: updatedInstructions,
+        },
+      });
+    },
+
+    // ====== Advance from section check-in to next section ======
+
+    advanceFromCheckIn: () => {
+      const { currentSectionIndex, lessonData } = get();
+      if (!lessonData) return;
+
+      const nextSectionIdx = currentSectionIndex + 1;
+
+      // If the lesson is done (shouldn't normally happen from check-in, but just in case)
+      if (nextSectionIdx >= lessonData.sections.length) {
+        set({ status: "completed" });
+        return;
+      }
+
+      set({
+        currentSectionIndex: nextSectionIdx,
+        currentUnitIndex: 0,
+        lessonView: "section-intro",
+      });
+    },
 
     // ====== New roadmap flow actions ======
 
@@ -267,15 +357,33 @@ export const useSectionedLessonStore = create<SectionedLessonState>(
         return;
       }
 
-      // If moving to a new section, show the section intro
+      // If moving to a new section, show the section check-in first
+      // UNLESS the section only contained context units (no review needed)
       if (nextSectionIdx !== currentSectionIndex) {
+        const isContextOnly = currentSection.units.every(
+          (u) => u.type === "context"
+        );
+
+        if (isContextOnly) {
+          // Skip check-in — go straight to the next section intro
+          set({
+            completedUnits: newCompleted,
+            furthestSectionIndex: newFurthestSection,
+            furthestUnitIndex: newFurthestUnit,
+            currentSectionIndex: nextSectionIdx,
+            currentUnitIndex: 0,
+            lessonView: "section-intro",
+          });
+          return;
+        }
+
         set({
           completedUnits: newCompleted,
           furthestSectionIndex: newFurthestSection,
           furthestUnitIndex: newFurthestUnit,
-          currentSectionIndex: nextSectionIdx,
-          currentUnitIndex: 0,
-          lessonView: "section-intro",
+          // Keep currentSectionIndex pointing at the COMPLETED section
+          // so the check-in references the right section
+          lessonView: "section-check-in",
         });
       } else {
         // Same section, go to next unit

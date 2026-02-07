@@ -18,6 +18,8 @@ export const CompiledSectionSchema = z.object({
   unitPlans: z.array(LessonPlanUnitSchema),
   /** The compiled/executed units */
   units: z.array(CompiledUnitSchema),
+  /** AI-generated summary of what the user learned in this section */
+  learningSummary: z.string().optional(),
 });
 
 /**

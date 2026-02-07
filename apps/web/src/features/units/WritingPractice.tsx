@@ -9,14 +9,17 @@ function ErrorWord({
   content,
   fix,
   why,
+  severity = "major",
 }: {
   content: string;
   fix: string;
   why: string;
+  severity?: "minor" | "major";
 }) {
   const [isHovered, setIsHovered] = useState(false);
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const ref = useRef<HTMLSpanElement>(null);
+  const isMinor = severity === "minor";
 
   const handleMouseEnter = () => {
     if (ref.current) {
@@ -35,7 +38,11 @@ function ErrorWord({
         ref={ref}
         onMouseEnter={handleMouseEnter}
         onMouseLeave={() => setIsHovered(false)}
-        className="bg-rose-100 border-b-2 border-bauhaus-red text-bauhaus-red px-1 cursor-help"
+        className={`px-1 cursor-help border-b-2 ${
+          isMinor
+            ? "bg-amber-50 border-amber-400 text-amber-700 border-dashed"
+            : "bg-rose-100 border-bauhaus-red text-bauhaus-red"
+        }`}
       >
         {content}
       </span>
@@ -48,6 +55,9 @@ function ErrorWord({
             transform: "translate(-50%, -100%)",
           }}
         >
+          {isMinor && (
+            <span className="block text-xs text-amber-300 font-bold uppercase tracking-wider mb-1">Minor</span>
+          )}
           <span className="font-bold text-bauhaus-green">{fix}</span>
           <span className="block text-xs text-zinc-300 mt-1">{why}</span>
           {/* Arrow */}
@@ -112,11 +122,13 @@ interface TextSegment {
   content: string;
   fix?: string;
   why?: string;
+  severity?: "minor" | "major";
 }
 
 function parseMarkedText(markedText: string): TextSegment[] {
   const segments: TextSegment[] = [];
-  const regex = /<err\s+fix="([^"]*)"\s+why="([^"]*)">([^<]*)<\/err>/g;
+  // Support both old format (no severity) and new format (with severity)
+  const regex = /<err\s+(?:severity="([^"]*)"\s+)?fix="([^"]*)"\s+why="([^"]*)">([^<]*)<\/err>/g;
 
   let lastIndex = 0;
   let match;
@@ -133,9 +145,10 @@ function parseMarkedText(markedText: string): TextSegment[] {
     // Add the error segment
     segments.push({
       type: "error",
-      content: match[3], // User's wrong word
-      fix: match[1], // Correct version
-      why: match[2], // Reason
+      content: match[4], // User's wrong word
+      fix: match[2], // Correct version
+      why: match[3], // Reason
+      severity: (match[1] as "minor" | "major") || "major",
     });
 
     lastIndex = match.index + match[0].length;
@@ -369,6 +382,7 @@ export default function WritingPractice({
                       content={segment.content}
                       fix={segment.fix || ""}
                       why={segment.why || ""}
+                      severity={segment.severity}
                     />
                   );
                 })}
@@ -376,11 +390,24 @@ export default function WritingPractice({
 
               {/* Error Legend */}
               {hasErrors && (
-                <div className="mt-4 pt-4 border-t border-zinc-200 text-sm text-zinc-500">
-                  <span className="bg-rose-100 border-b-2 border-bauhaus-red text-bauhaus-red px-1">
-                    Highlighted text
-                  </span>{" "}
-                  = errors. Hover for corrections.
+                <div className="mt-4 pt-4 border-t border-zinc-200 text-sm text-zinc-500 flex flex-wrap gap-4">
+                  {parsedMarkedText.some((s) => s.severity === "major") && (
+                    <span>
+                      <span className="bg-rose-100 border-b-2 border-bauhaus-red text-bauhaus-red px-1">
+                        Red
+                      </span>{" "}
+                      = major errors
+                    </span>
+                  )}
+                  {parsedMarkedText.some((s) => s.severity === "minor") && (
+                    <span>
+                      <span className="bg-amber-50 border-b-2 border-dashed border-amber-400 text-amber-700 px-1">
+                        Amber
+                      </span>{" "}
+                      = minor (accents, punctuation)
+                    </span>
+                  )}
+                  <span className="text-zinc-400">Hover for corrections.</span>
                 </div>
               )}
 

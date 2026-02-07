@@ -5,8 +5,20 @@ import { UnitFactoryService } from './unit-factory.service';
 import { buildLessonContext, type LessonContext } from './lesson.context';
 import { parseLessonXml, extractXmlFromResponse, type ParsedSection } from './xml-parser.util';
 import { LESSON_STRUCTURE_PROMPT_TEMPLATE } from 'src/testing/cases/lesson-structure.cases';
+import { LESSON_UPDATE_STRUCTURE_PROMPT_TEMPLATE } from 'src/testing/cases/lesson-update-structure.cases';
 import * as fs from 'fs';
 import * as path from 'path';
+
+// ============================================================================
+// PROGRESS EVENT (used for SSE streaming)
+// ============================================================================
+
+export interface LessonProgressEvent {
+  stage: 'structure' | 'parsing' | 'units' | 'summaries' | 'complete' | 'error';
+  message: string;
+  current?: number;
+  total?: number;
+}
 
 // ============================================================================
 // INPUT DTO
@@ -27,6 +39,22 @@ export interface CreateStructuredLessonDto {
   weekDescription?: string;
   weekLessonsSoFar?: Array<{ title: string; description: string }>;
   previousWeeksSummary?: string;
+}
+
+export interface LessonUpdateStructureDto {
+  // User profile
+  userLevel: string;
+  targetLanguage: string;
+  nativeLanguage: string;
+
+  // Lesson plan context (XML up to current point)
+  lessonStructureSoFar: string;
+
+  // The specific instruction from the tool call
+  specificInstruction: string;
+
+  // Conversation context (last 10 messages formatted as string)
+  conversationContext: string;
 }
 
 // ============================================================================
@@ -85,10 +113,12 @@ export class StructuredLessonService {
    */
   async createStructuredLesson(
     dto: CreateStructuredLessonDto,
+    onProgress?: (event: LessonProgressEvent) => void,
   ): Promise<StructuredLessonWithDebug> {
     this.logger.log(`Creating structured lesson: "${dto.lessonTitle}"`);
 
     // Step 1: Generate lesson structure (XML)
+    onProgress?.({ stage: 'structure', message: 'Creating lesson plan...' });
     const structurePrompt = this.buildStructurePrompt(dto);
     this.logger.debug('Generating lesson structure...');
 
@@ -99,6 +129,7 @@ export class StructuredLessonService {
         : String(response.content);
 
     // Step 2: Parse XML into sections with units
+    onProgress?.({ stage: 'parsing', message: 'Analyzing lesson structure...' });
     this.logger.debug('Parsing XML structure...');
     const extractedXml = extractXmlFromResponse(rawXmlResponse);
     const parsedSections = parseLessonXml(extractedXml);
@@ -111,8 +142,15 @@ export class StructuredLessonService {
       `Parsed ${parsedSections.length} sections with ${totalUnits} total units`,
     );
 
-    // Step 3: Execute all units via unit factory with debug capture
-    this.logger.debug('Executing units...');
+    onProgress?.({
+      stage: 'units',
+      message: `Creating units (0/${totalUnits})`,
+      current: 0,
+      total: totalUnits,
+    });
+
+    // Step 3: Execute all units via unit factory with debug capture (PARALLEL)
+    this.logger.debug('Executing units in parallel...');
     const context = buildLessonContext(
       dto.userLevel,
       dto.targetLanguage,
@@ -130,7 +168,12 @@ export class StructuredLessonService {
     );
 
     const { compiledSections, unitExecutions } =
-      await this.executeSectionsWithDebug(parsedSections, allParsedUnits, context);
+      await this.executeSectionsWithDebug(
+        parsedSections,
+        allParsedUnits,
+        context,
+        onProgress,
+      );
 
     this.logger.log(
       `Lesson created with ${compiledSections.length} sections, ${totalUnits} units`,
@@ -169,7 +212,147 @@ export class StructuredLessonService {
     // Save pipeline debug to file
     this.savePipelineDebug(dto.lessonTitle, pipeline);
 
+    onProgress?.({ stage: 'complete', message: 'Lesson ready!' });
+
     return { lesson, pipeline };
+  }
+
+  // ============================================================================
+  // LESSON UPDATE STRUCTURE (generate extra sections mid-lesson)
+  // ============================================================================
+
+  /**
+   * Generate extra sections to insert into an existing lesson.
+   * Called when the section chat's tool call triggers lesson-update-structure.
+   *
+   * 1. Generate update structure as XML (with the update prompt)
+   * 2. Parse XML into sections with units
+   * 3. Execute each unit via unit factory (with full lesson context)
+   *
+   * Returns an array of compiled sections ready to insert into the lesson.
+   */
+  async generateExtraSections(
+    dto: LessonUpdateStructureDto,
+    onProgress?: (event: LessonProgressEvent) => void,
+  ): Promise<CompiledSection[]> {
+    this.logger.log('Generating extra sections for lesson update...');
+
+    // Step 1: Build and invoke the update structure prompt
+    onProgress?.({ stage: 'structure', message: 'Planning extra practice...' });
+    const prompt = this.buildUpdateStructurePrompt(dto);
+    this.logger.debug('Invoking LLM for lesson update structure...');
+
+    // ── Pipeline log: prompt ──
+    console.log('\n' + '='.repeat(80));
+    console.log('🔄 LESSON-UPDATE-STRUCTURE PIPELINE');
+    console.log('='.repeat(80));
+    console.log('📝 Specific Instruction:', dto.specificInstruction);
+    console.log('💬 Conversation Context (last msgs):\n', dto.conversationContext);
+    console.log('─'.repeat(80));
+    console.log('📝 Full Update Prompt:\n', prompt);
+    console.log('─'.repeat(80));
+
+    const response = await this.llm.invoke(prompt);
+    const rawXmlResponse =
+      typeof response.content === 'string'
+        ? response.content
+        : String(response.content);
+
+    // Step 2: Parse XML into sections
+    onProgress?.({ stage: 'parsing', message: 'Analyzing practice structure...' });
+    this.logger.debug('Parsing update structure XML...');
+    const extractedXml = extractXmlFromResponse(rawXmlResponse);
+    const parsedSections = parseLessonXml(extractedXml);
+
+    const totalUnits = parsedSections.reduce(
+      (sum, s) => sum + s.units.length,
+      0,
+    );
+    this.logger.debug(
+      `Parsed ${parsedSections.length} extra sections with ${totalUnits} total units`,
+    );
+
+    onProgress?.({
+      stage: 'units',
+      message: `Creating units (0/${totalUnits})`,
+      current: 0,
+      total: totalUnits,
+    });
+
+    // ── Pipeline log: XML & parsed ──
+    console.log('📄 Raw XML Response:\n', rawXmlResponse);
+    console.log('─'.repeat(80));
+    console.log('🏷️  Extracted XML:\n', extractedXml);
+    console.log('─'.repeat(80));
+    console.log('📦 Parsed Sections:');
+    parsedSections.forEach((s, si) => {
+      console.log(`  Section ${si + 1}: ${s.name}`);
+      s.units.forEach((u, ui) => {
+        console.log(`    Unit ${ui + 1}: [${u.type}] ${u.name} — ${u.instructions.slice(0, 80)}`);
+      });
+    });
+    console.log('─'.repeat(80));
+
+    // Step 3: Execute all units via unit factory
+    // Build context — include the full lesson plan so far so units are coherent
+    const context = buildLessonContext(
+      dto.userLevel,
+      dto.targetLanguage,
+      dto.nativeLanguage,
+    );
+
+    // Build flat list of parsed units for lesson plan context building
+    const allParsedUnits = parsedSections.flatMap((s) =>
+      s.units.map((u) => ({
+        type: u.type,
+        name: u.name,
+        instructions: u.instructions,
+        sectionName: s.name,
+      })),
+    );
+
+    const { compiledSections, unitExecutions } = await this.executeSectionsWithDebug(
+      parsedSections,
+      allParsedUnits,
+      {
+        ...context,
+        // Pass the existing lesson plan as context so generated units
+        // are coherent with what the student has already done
+        lessonPlanContext: dto.lessonStructureSoFar,
+      },
+      onProgress,
+    );
+
+    onProgress?.({ stage: 'complete', message: 'Extra practice ready!' });
+
+    // ── Pipeline log: unit executions ──
+    console.log('⚙️  Unit Executions:');
+    unitExecutions.forEach((exec) => {
+      console.log(`  S${exec.sectionIndex + 1} Unit ${exec.unitIndex + 1}: [${exec.unitType}] ${exec.unitName}`);
+      console.log('    Prompt:', exec.prompt.slice(0, 200) + '...');
+      console.log('    Output:', JSON.stringify(exec.output).slice(0, 300));
+    });
+    console.log('='.repeat(80));
+
+    this.logger.log(
+      `Extra sections generated: ${compiledSections.length} sections, ${totalUnits} units`,
+    );
+
+    return compiledSections;
+  }
+
+  /**
+   * Build the prompt for lesson update structure generation
+   */
+  private buildUpdateStructurePrompt(dto: LessonUpdateStructureDto): string {
+    return this.buildPrompt(LESSON_UPDATE_STRUCTURE_PROMPT_TEMPLATE, {
+      userLevel: dto.userLevel,
+      targetLanguage: dto.targetLanguage,
+      nativeLanguage: dto.nativeLanguage,
+      lessonStructureSoFar: dto.lessonStructureSoFar,
+      specificInstruction: dto.specificInstruction,
+      conversationContext: dto.conversationContext,
+    });
   }
 
   /**
@@ -293,7 +476,64 @@ export class StructuredLessonService {
   }
 
   /**
-   * Execute all sections and their units sequentially, capturing debug info.
+   * Generate a learning summary for a section using AI.
+   */
+  private async generateSectionSummary(
+    sectionName: string,
+    unitInstructions: string[],
+    context: LessonContext,
+  ): Promise<string> {
+    const summaryLlm = new ChatAnthropic({
+      model: 'claude-haiku-4-5',
+      apiKey: process.env.ANTHROPIC_API_KEY,
+      temperature: 0.7,
+    });
+
+    const unitList = unitInstructions
+      .map((instr, i) => `${i + 1}. ${instr}`)
+      .join('\n');
+
+    const prompt = `You are summarizing what a ${context.userLevel} student learned in a language lesson section.
+
+Section: "${sectionName}"
+Target language: ${context.targetLanguage}
+Native language: ${context.nativeLanguage}
+
+The section covered these topics/activities:
+${unitList}
+
+Write a short, friendly checklist of what the student learned and practiced.
+Format it as a brief intro line followed by markdown bullet points. Use "✓" as the bullet marker.
+
+Example format:
+Great work! In this section you covered:
+✓ How to conjugate regular -ar verbs in present tense
+✓ Common greetings and introductions
+✓ Using "ser" vs "estar" in context
+
+Rules:
+- Use second person ("you")
+- Be specific about actual language concepts, vocabulary, or grammar covered
+- Each bullet should be a concise but informative learning point
+- Do NOT just copy unit names — synthesize into clear learning outcomes
+- Keep it to 3-6 bullet points maximum
+- The intro line should be warm and encouraging (1 short sentence)`;
+
+    try {
+      const response = await summaryLlm.invoke(prompt);
+      return typeof response.content === 'string'
+        ? response.content
+        : String(response.content);
+    } catch (error) {
+      this.logger.warn(`Failed to generate section summary: ${error}`);
+      return `You completed the "${sectionName}" section!`;
+    }
+  }
+
+  /**
+   * Execute all sections and their units in PARALLEL, capturing debug info.
+   * All units across all sections run concurrently for maximum speed.
+   * Accepts an optional progress callback for SSE streaming.
    */
   private async executeSectionsWithDebug(
     parsedSections: ParsedSection[],
@@ -304,73 +544,119 @@ export class StructuredLessonService {
       sectionName: string;
     }>,
     baseContext: LessonContext,
+    onProgress?: (event: LessonProgressEvent) => void,
   ): Promise<{
     compiledSections: CompiledSection[];
     unitExecutions: UnitPipelineDebug[];
   }> {
-    const unitExecutions: UnitPipelineDebug[] = [];
-    const compiledSections: CompiledSection[] = [];
+    // Build the full lesson plan context once (all units can see the full plan)
+    const fullLessonPlanContext = this.buildLessonPlanContext(
+      allParsedUnits,
+      allParsedUnits.length - 1,
+    );
 
-    let globalUnitIndex = 0;
+    const contextWithPlan: LessonContext = {
+      ...baseContext,
+      lessonPlanContext: baseContext.lessonPlanContext || fullLessonPlanContext,
+    };
 
-    for (
-      let sectionIndex = 0;
-      sectionIndex < parsedSections.length;
-      sectionIndex++
-    ) {
-      const section = parsedSections[sectionIndex];
-      const compiledUnits: CompiledUnit[] = [];
-      const unitPlans: LessonPlanUnit[] = [];
+    // Flatten all units with their section/unit indices
+    const totalUnits = allParsedUnits.length;
+    let completedCount = 0;
 
-      for (let unitIndex = 0; unitIndex < section.units.length; unitIndex++) {
-        const parsedUnit = section.units[unitIndex];
-        const unitPlan: LessonPlanUnit = {
+    interface UnitTask {
+      sectionIndex: number;
+      unitIndex: number;
+      parsedUnit: { type: string; name: string; instructions: string };
+      unitPlan: LessonPlanUnit;
+    }
+
+    const tasks: UnitTask[] = parsedSections.flatMap((section, sectionIndex) =>
+      section.units.map((parsedUnit, unitIndex) => ({
+        sectionIndex,
+        unitIndex,
+        parsedUnit,
+        unitPlan: {
           type: parsedUnit.type,
           instructions: parsedUnit.instructions,
-        };
-        unitPlans.push(unitPlan);
+        } as LessonPlanUnit,
+      })),
+    );
 
-        // Build context with lesson plan up to this unit
-        const lessonPlanContext = this.buildLessonPlanContext(
-          allParsedUnits,
-          globalUnitIndex,
-        );
+    // Execute ALL units AND section summaries in parallel
+    // Summaries only depend on instructions (not unit results), so they can run concurrently
+    const summaryPromises = parsedSections.map((section) =>
+      this.generateSectionSummary(
+        section.name,
+        section.units.map((u) => u.instructions),
+        contextWithPlan,
+      ),
+    );
 
-        const contextWithPlan: LessonContext = {
-          ...baseContext,
-          lessonPlanContext,
-        };
+    const unitPromises = tasks.map(async (task) => {
+      const prompt = this.unitFactory.buildUnitPrompt(
+        task.unitPlan,
+        contextWithPlan,
+      );
+      const result = await this.unitFactory.executeUnit(
+        task.unitPlan,
+        contextWithPlan,
+      );
 
-        // Use unit factory
-        const prompt = this.unitFactory.buildUnitPrompt(
-          unitPlan,
-          contextWithPlan,
-        );
-        const result = await this.unitFactory.executeUnit(
-          unitPlan,
-          contextWithPlan,
-        );
-
-        unitExecutions.push({
-          sectionIndex,
-          unitIndex,
-          unitType: parsedUnit.type,
-          unitName: parsedUnit.name,
-          prompt,
-          output: result.output,
-        });
-
-        compiledUnits.push(result);
-        globalUnitIndex++;
-      }
-
-      compiledSections.push({
-        sectionInstruction: section.name,
-        sectionIndex,
-        unitPlans,
-        units: compiledUnits,
+      completedCount++;
+      onProgress?.({
+        stage: 'units',
+        message: `Creating units (${completedCount}/${totalUnits})`,
+        current: completedCount,
+        total: totalUnits,
       });
-    }
+
+      return {
+        ...task,
+        prompt,
+        result,
+      };
+    });
+
+    // Run everything concurrently
+    const [results, sectionSummaries] = await Promise.all([
+      Promise.all(unitPromises),
+      Promise.all(summaryPromises),
+    ]);
+
+    // Assemble results back into sections
+    const unitExecutions: UnitPipelineDebug[] = results.map((r) => ({
+      sectionIndex: r.sectionIndex,
+      unitIndex: r.unitIndex,
+      unitType: r.parsedUnit.type,
+      unitName: r.parsedUnit.name,
+      prompt: r.prompt,
+      output: r.result.output,
+    }));
+
+    onProgress?.({
+      stage: 'summaries',
+      message: 'Finalizing...',
+    });
+
+    // Build compiled sections
+    const compiledSections: CompiledSection[] = parsedSections.map(
+      (section, sectionIndex) => {
+        const sectionResults = results.filter(
+          (r) => r.sectionIndex === sectionIndex,
+        );
+        // Sort by unitIndex to maintain order
+        sectionResults.sort((a, b) => a.unitIndex - b.unitIndex);
+
+        return {
+          sectionInstruction: section.name,
+          sectionIndex,
+          unitPlans: sectionResults.map((r) => r.unitPlan),
+          units: sectionResults.map((r) => r.result),
+          learningSummary: sectionSummaries[sectionIndex],
+        };
+      },
+    );
 
     return { compiledSections, unitExecutions };
   }

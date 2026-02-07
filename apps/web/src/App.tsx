@@ -330,6 +330,83 @@ Now let's practice these phrases!`,
 
 type AppView = "home" | "creator" | "player" | "roadmap" | "roadmap-lesson";
 
+// ============================================================================
+// Pipeline logging helper — logs full lesson pipeline to browser console
+// ============================================================================
+function logLessonPipeline(data: {
+  pipeline?: {
+    structurePrompt: string;
+    rawXmlResponse: string;
+    extractedXml: string;
+    parsedSections: Array<{
+      name: string;
+      units: Array<{ type: string; name: string; instructions: string }>;
+    }>;
+    unitExecutions?: Array<{
+      sectionIndex: number;
+      unitIndex: number;
+      unitType: string;
+      unitName: string;
+      prompt: string;
+      output: unknown;
+    }>;
+  };
+  lesson?: {
+    sections?: Array<{
+      sectionInstruction: string;
+      learningSummary?: string;
+      units: Array<{
+        type: string;
+        plan?: { instructions: string };
+        output: unknown;
+      }>;
+    }>;
+  };
+}) {
+  if (!data.pipeline) return;
+
+  console.group("🔧 Lesson Pipeline Debug");
+  console.log("📝 Structure Prompt:", data.pipeline.structurePrompt);
+  console.log("📄 Raw XML Response:", data.pipeline.rawXmlResponse);
+  console.log("🏷️ Extracted XML:", data.pipeline.extractedXml);
+  console.log("📦 Parsed Sections:", data.pipeline.parsedSections);
+
+  // Log unit executions with FULL inputs and outputs
+  console.group("⚙️ Unit Executions (inputs + outputs)");
+  data.pipeline.unitExecutions?.forEach((unit) => {
+    console.group(
+      `S${unit.sectionIndex + 1} U${unit.unitIndex + 1}: [${unit.unitType}] ${unit.unitName}`
+    );
+    console.log("📥 Full Prompt (input):", unit.prompt);
+    console.log("📤 Full Output:", unit.output);
+    console.groupEnd();
+  });
+  console.groupEnd();
+
+  // Log the final lesson with section summaries
+  if (data.lesson?.sections) {
+    console.group("📚 Final Lesson Sections");
+    data.lesson.sections.forEach((section, i) => {
+      console.group(`Section ${i + 1}: ${section.sectionInstruction}`);
+      if (section.learningSummary) {
+        console.log("✨ Learning Summary:", section.learningSummary);
+      }
+      section.units.forEach((unit, j) => {
+        console.log(
+          `  Unit ${j + 1} [${unit.type}]:`,
+          unit.plan?.instructions?.slice(0, 80) ?? "",
+          "→",
+          unit.output
+        );
+      });
+      console.groupEnd();
+    });
+    console.groupEnd();
+  }
+
+  console.groupEnd();
+}
+
 function App() {
   const [view, setView] = useState<AppView>("home");
 
@@ -348,59 +425,83 @@ function App() {
     setView("creator");
   };
 
+  const setGenerationProgress = useSectionedLessonStore(
+    (s) => s.setGenerationProgress
+  );
+
   const handleLessonFormSubmit = async (formData: CreateLessonFormData) => {
-    // Switch to player view immediately so the "Maestro is composing..." screen shows
+    // Switch to player view immediately so the loading screen shows
     setStatus("generating");
+    setGenerationProgress(null);
     setView("player");
 
     try {
       const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:3000";
-      const response = await fetch(`${apiUrl}/lessons/create-structured`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
-      });
+      const response = await fetch(
+        `${apiUrl}/lessons/create-structured-stream`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(formData),
+        }
+      );
 
       if (!response.ok) {
         throw new Error("Failed to create lesson");
       }
 
-      const result = await response.json();
-      const data = result.data ?? result;
+      const reader = response.body?.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
 
-      // Log pipeline debug info to console
-      if (data.pipeline) {
-        console.group("🔧 Lesson Pipeline Debug");
-        console.log("📝 Structure Prompt:", data.pipeline.structurePrompt);
-        console.log("📄 Raw XML Response:", data.pipeline.rawXmlResponse);
-        console.log("🏷️ Extracted XML:", data.pipeline.extractedXml);
-        console.log("📦 Parsed Sections:", data.pipeline.parsedSections);
-        console.group("⚙️ Unit Executions");
-        data.pipeline.unitExecutions?.forEach(
-          (unit: {
-            sectionIndex: number;
-            unitIndex: number;
-            unitType: string;
-            unitName: string;
-            prompt: string;
-            output: unknown;
-          }) => {
-            console.group(
-              `S${unit.sectionIndex + 1} Unit ${unit.unitIndex + 1}: ${unit.unitName} (${unit.unitType})`
-            );
-            console.log("Prompt:", unit.prompt);
-            console.log("Output:", unit.output);
-            console.groupEnd();
+      if (!reader) throw new Error("No response body");
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop() ?? "";
+
+        for (const line of lines) {
+          if (!line.startsWith("data: ")) continue;
+          const payload = line.slice(6).trim();
+          if (payload === "[DONE]") continue;
+
+          try {
+            const event = JSON.parse(payload);
+
+            if (event.type === "progress") {
+              setGenerationProgress({
+                stage: event.stage,
+                message: event.message,
+                current: event.current,
+                total: event.total,
+              });
+            }
+
+            if (event.type === "result") {
+              const data = event.data;
+
+              // ─── Frontend console logs ───
+              logLessonPipeline(data);
+
+              setLesson(data.lesson ?? data);
+            }
+
+            if (event.type === "error") {
+              throw new Error(event.message);
+            }
+          } catch (parseErr) {
+            // Ignore malformed lines
           }
-        );
-        console.groupEnd();
-        console.groupEnd();
+        }
       }
-
-      setLesson(data.lesson ?? data);
     } catch (error) {
       console.error("Failed to generate lesson:", error);
       setStatus("idle");
+      setGenerationProgress(null);
       setView("creator");
     }
   };
@@ -428,47 +529,73 @@ function App() {
 
     // Show loading state
     setStatus("generating");
+    setGenerationProgress(null);
     setView("roadmap-lesson");
 
     try {
       const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:3000";
-      // Call the new structured lesson API
-      const response = await fetch(`${apiUrl}/lessons/create-structured`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(lessonContext),
-      });
+      const response = await fetch(
+        `${apiUrl}/lessons/create-structured-stream`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(lessonContext),
+        }
+      );
 
       if (!response.ok) {
         throw new Error("Failed to generate lesson");
       }
 
-      const result = await response.json();
-      // Response is { lesson, pipeline } or { data: { lesson, pipeline } }
-      const data = result.data ?? result;
-      
-      // Log pipeline debug info to console
-      if (data.pipeline) {
-        console.group("🔧 Lesson Pipeline Debug");
-        console.log("📝 Structure Prompt:", data.pipeline.structurePrompt);
-        console.log("📄 Raw XML Response:", data.pipeline.rawXmlResponse);
-        console.log("🏷️ Extracted XML:", data.pipeline.extractedXml);
-        console.log("📦 Parsed Sections:", data.pipeline.parsedSections);
-        console.group("⚙️ Unit Executions");
-        data.pipeline.unitExecutions?.forEach((unit: { sectionIndex: number; unitIndex: number; unitType: string; unitName: string; prompt: string; output: unknown }) => {
-          console.group(`S${unit.sectionIndex + 1} Unit ${unit.unitIndex + 1}: ${unit.unitName} (${unit.unitType})`);
-          console.log("Prompt:", unit.prompt);
-          console.log("Output:", unit.output);
-          console.groupEnd();
-        });
-        console.groupEnd();
-        console.groupEnd();
+      const reader = response.body?.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+
+      if (!reader) throw new Error("No response body");
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop() ?? "";
+
+        for (const line of lines) {
+          if (!line.startsWith("data: ")) continue;
+          const payload = line.slice(6).trim();
+          if (payload === "[DONE]") continue;
+
+          try {
+            const event = JSON.parse(payload);
+
+            if (event.type === "progress") {
+              setGenerationProgress({
+                stage: event.stage,
+                message: event.message,
+                current: event.current,
+                total: event.total,
+              });
+            }
+
+            if (event.type === "result") {
+              const data = event.data;
+              logLessonPipeline(data);
+              setLesson(data.lesson ?? data);
+            }
+
+            if (event.type === "error") {
+              throw new Error(event.message);
+            }
+          } catch {
+            // Ignore malformed SSE lines
+          }
+        }
       }
-      
-      setLesson(data.lesson ?? data);
     } catch (error) {
       console.error("Failed to generate lesson:", error);
       setStatus("idle");
+      setGenerationProgress(null);
       setView("roadmap");
     }
   };
@@ -504,7 +631,7 @@ function App() {
 
   if (view === "player") {
     return (
-      <div className="h-screen">
+      <div className="h-full">
         <LessonPlayer
           onClose={handleClose}
           onLessonComplete={handleClose}
@@ -545,7 +672,7 @@ function App() {
 
   if (view === "roadmap-lesson") {
     return (
-      <div className="h-screen">
+      <div className="h-full">
         <LessonPlayer
           onClose={handleBackToRoadmap}
           onLessonComplete={handleRoadmapLessonComplete}

@@ -29,7 +29,7 @@ export default function Story({ data, onComplete }: StoryProps) {
   };
 
   return (
-    <div className="h-[calc(100vh-50px)] bg-bauhaus-white text-black font-sans flex flex-col selection:bg-blue-200 overflow-hidden">
+    <div className="h-full bg-bauhaus-white text-black font-sans flex flex-col selection:bg-blue-200 overflow-hidden">
       {/* Header */}
       <header className="px-8 pt-8 pb-4 w-full shrink-0">
         <div className="flex items-end justify-between mb-4 border-b-4 border-black pb-4">

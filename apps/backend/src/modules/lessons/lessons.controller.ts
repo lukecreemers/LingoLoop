@@ -1,4 +1,5 @@
-import { Body, Controller, Post } from '@nestjs/common';
+import { Body, Controller, Post, Res } from '@nestjs/common';
+import type { Response } from 'express';
 import { LessonsService } from './lessons.service';
 import {
   CompiledLesson,
@@ -82,5 +83,42 @@ export class LessonsController {
   ) {
     // Returns { lesson, pipeline } with full debug info
     return this.structuredLessonService.createStructuredLesson(body);
+  }
+
+  // ============================================================================
+  // SSE STREAMING STRUCTURED LESSON CREATION (with progress events)
+  // ============================================================================
+
+  @Post('create-structured-stream')
+  async createStructuredLessonStream(
+    @Body() body: CreateStructuredLessonDto,
+    @Res() res: Response,
+  ) {
+    // Set up SSE headers
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+    res.setHeader('X-Accel-Buffering', 'no');
+    res.flushHeaders();
+
+    try {
+      const result = await this.structuredLessonService.createStructuredLesson(
+        body,
+        (event) => {
+          // Stream progress events to client
+          res.write(`data: ${JSON.stringify({ type: 'progress', ...event })}\n\n`);
+        },
+      );
+
+      // Send the final result
+      res.write(`data: ${JSON.stringify({ type: 'result', data: result })}\n\n`);
+      res.write('data: [DONE]\n\n');
+      res.end();
+    } catch (error) {
+      res.write(
+        `data: ${JSON.stringify({ type: 'error', message: String(error) })}\n\n`,
+      );
+      res.end();
+    }
   }
 }

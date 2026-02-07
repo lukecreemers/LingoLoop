@@ -44,7 +44,7 @@ export default function UnitShell({
   onSecondary,
 }: UnitShellProps) {
   return (
-    <div className="bg-bauhaus-white text-black font-sans flex flex-col selection:bg-blue-200 overflow-hidden ">
+    <div className="h-full bg-bauhaus-white text-black font-sans flex flex-col selection:bg-blue-200 overflow-hidden">
       <UnitHeader
         title={title}
         accentColor={accentColor}
