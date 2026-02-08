@@ -104,7 +104,7 @@ export class TtsService {
         this.logger.warn('Could not fetch voices, returning defaults');
         return this.getDefaultVoices();
       }
-      const data = await response.json();
+      const data = (await response.json()) as { voices?: string[] };
       return data.voices || this.getDefaultVoices();
     } catch {
       this.logger.warn('Could not fetch voices, returning defaults');
