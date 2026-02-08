@@ -26,6 +26,7 @@ import { TL_WEEK_TEST_CONFIG } from './cases/timeline-week-breakdown.cases';
 import { TL_INITIAL_TEST_CONFIG } from './cases/timeline-initial-to-months.cases';
 import { LESSON_STRUCTURE_TEST_CONFIG } from './cases/lesson-structure.cases';
 import { CURRICULUM_TEST_CONFIG } from './cases/curriculum-generation.cases';
+import { DAILYLOOP_TEST_CONFIG } from './cases/dailyloop-generation.cases';
 
 // ============================================================================
 // REGISTER FEATURES HERE
@@ -53,6 +54,7 @@ const FEATURES: Record<string, PromptTestConfig<any, any>> = {
   tlinit: TL_INITIAL_TEST_CONFIG,
   ls: LESSON_STRUCTURE_TEST_CONFIG,
   curriculum: CURRICULUM_TEST_CONFIG,
+  dailyloop: DAILYLOOP_TEST_CONFIG,
 };
 
 // ============================================================================
