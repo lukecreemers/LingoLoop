@@ -16,6 +16,7 @@ export interface ModelConfig {
   provider: ModelProvider;
   model: string;
   temperature?: number;
+  maxTokens?: number;
 }
 
 export interface TestCase<TInput> {
@@ -35,6 +36,8 @@ export interface PromptTestConfig<
   models: ModelConfig[];
   /** If true, uses raw text output instead of structured output (for explanations, etc.) */
   useRawTextOutput?: boolean;
+  /** If true, runs test cases sequentially instead of in parallel (useful for long/expensive calls) */
+  runSequential?: boolean;
 }
 
 export interface TestResult<TOutput> {
@@ -99,31 +102,35 @@ export class PromptTester<
   }
 
   private createModel(modelConfig: ModelConfig) {
-    const { provider, model, temperature = 0.7 } = modelConfig;
+    const { provider, model, temperature = 0.7, maxTokens } = modelConfig;
     switch (provider) {
       case 'anthropic':
         return new ChatAnthropic({
           model,
           temperature,
           apiKey: process.env.ANTHROPIC_API_KEY,
+          ...(maxTokens && { maxTokens }),
         });
       case 'openai':
         return new ChatOpenAI({
           model,
           temperature,
           apiKey: process.env.OPENAI_API_KEY,
+          ...(maxTokens && { maxTokens }),
         });
       case 'deepseek':
         return new ChatDeepSeek({
           model,
           temperature,
           apiKey: process.env.DEEPSEEK_API_KEY,
+          ...(maxTokens && { maxTokens }),
         });
       case 'google':
         return new ChatGoogleGenerativeAI({
           model,
           temperature,
           apiKey: process.env.GOOGLE_API_KEY,
+          ...(maxTokens && { maxOutputTokens: maxTokens }),
         });
       default:
         throw new Error(`Unknown provider: ${provider}`);
@@ -141,19 +148,31 @@ export class PromptTester<
     try {
       const model = this.createModel(modelConfig);
 
-      // Use raw text output if configured (for explanations, etc.)
+      // Use streaming raw text output (for long responses like curriculum XML)
       if (this.config.useRawTextOutput) {
-        const response = await model.invoke(prompt);
-        const content =
-          typeof response.content === 'string'
-            ? response.content
-            : String(response.content);
+        let content = '';
+        let charCount = 0;
+        const stream = await model.stream(prompt);
 
-        // Extract token usage from response metadata
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const usageMetadata = (response as any)?.usage_metadata;
-        const inputTokens = usageMetadata?.input_tokens as number | undefined;
-        const outputTokens = usageMetadata?.output_tokens as number | undefined;
+        for await (const chunk of stream) {
+          const text =
+            typeof chunk.content === 'string'
+              ? chunk.content
+              : Array.isArray(chunk.content)
+                ? chunk.content.map((c) => ('text' in c ? c.text : '')).join('')
+                : String(chunk.content);
+          content += text;
+          charCount += text.length;
+          // Print a dot every ~500 chars as progress
+          if (charCount > 500) {
+            process.stdout.write('.');
+            charCount = 0;
+          }
+        }
+        process.stdout.write('\n');
+
+        // Estimate token counts from streamed content (no metadata available)
+        const estimatedOutputTokens = Math.ceil(content.length / 4);
 
         return {
           testName: testCase.name,
@@ -162,8 +181,7 @@ export class PromptTester<
           output: content as TOutput,
           durationMs: Date.now() - startTime,
           prompt,
-          inputTokens,
-          outputTokens,
+          outputTokens: estimatedOutputTokens,
         };
       }
 
@@ -203,24 +221,48 @@ export class PromptTester<
   }
 
   /**
-   * Run all tests in PARALLEL and save results to file
+   * Run all tests and save results to file.
+   * Runs in parallel by default, or sequentially if config.runSequential is true.
    */
   async run(): Promise<TestSuiteResult<TOutput>> {
     const startTime = Date.now();
+    const totalTests = this.config.testCases.length * this.config.models.length;
 
-    console.log(
-      `\n⚡ Running ${this.config.testCases.length} tests in parallel...`,
-    );
+    let results: TestResult<TOutput>[];
 
-    // Build and run all test promises in parallel
-    const testPromises: Promise<TestResult<TOutput>>[] = [];
-    for (const modelConfig of this.config.models) {
-      for (const testCase of this.config.testCases) {
-        testPromises.push(this.runSingleTest(testCase, modelConfig));
+    if (this.config.runSequential) {
+      console.log(
+        `\n🔄 Running ${totalTests} tests sequentially (${this.config.testCases.length} cases × ${this.config.models.length} models)...\n`,
+      );
+
+      results = [];
+      for (const modelConfig of this.config.models) {
+        for (let i = 0; i < this.config.testCases.length; i++) {
+          const testCase = this.config.testCases[i];
+          console.log(
+            `  [${results.length + 1}/${totalTests}] ${testCase.name} (${modelConfig.model})`,
+          );
+          const result = await this.runSingleTest(testCase, modelConfig);
+          results.push(result);
+          const icon = result.success ? '✅' : '❌';
+          console.log(
+            `  ${icon} Done in ${(result.durationMs / 1000).toFixed(1)}s\n`,
+          );
+        }
       }
-    }
+    } else {
+      console.log(`\n⚡ Running ${totalTests} tests in parallel...`);
 
-    const results = await Promise.all(testPromises);
+      // Build and run all test promises in parallel
+      const testPromises: Promise<TestResult<TOutput>>[] = [];
+      for (const modelConfig of this.config.models) {
+        for (const testCase of this.config.testCases) {
+          testPromises.push(this.runSingleTest(testCase, modelConfig));
+        }
+      }
+
+      results = await Promise.all(testPromises);
+    }
     const totalTimeMs = Date.now() - startTime;
 
     const passed = results.filter((r) => r.success).length;

@@ -17,7 +17,7 @@ export const UpdateUserPreferencesToolSchema = z.object({
     .describe('The language the user wants to learn (e.g. "Spanish")'),
   nativeLanguage: z
     .string()
-    .describe("The user's native language (e.g. \"English\")"),
+    .describe('The user\'s native language (e.g. "English")'),
   preferences: z
     .string()
     .describe(
@@ -46,10 +46,8 @@ export const CreateGrammarRoadmapToolSchema = z.object({
   userGoal: z
     .string()
     .describe(
-      'A detailed description of the user\'s learning goal, timeline, and context. E.g. "Complete beginner in Spanish, moving to Madrid in 6 months, wants to be conversationally fluent for daily life and work."',
+      'A comprehensive summary of everything needed to generate the curriculum. Include: the user\'s current level, what they already know, what they need to learn, their goal, timeline, and lessons per week. E.g. "The learner is at B1 level with solid conversational ability in present and past tenses. They need a 4-month curriculum to reach B2 — mastering subjunctive mood, conditional structures, advanced vocabulary. 3 lessons per week."',
     ),
-  targetLanguage: z.string().describe('The language the user wants to learn'),
-  nativeLanguage: z.string().describe("The user's native language"),
 });
 
 export type CreateGrammarRoadmapTool = z.infer<
@@ -61,31 +59,11 @@ export type CreateGrammarRoadmapTool = z.infer<
  * Sets up the daily loop modules and their configs.
  */
 export const CreateDailyLoopToolSchema = z.object({
-  modules: z
-    .array(
-      z.object({
-        type: z
-          .enum([
-            'FLASHCARDS',
-            'READING',
-            'WRITING',
-            'TRANSLATION',
-            'CUSTOM_LESSON',
-            'REVIEW',
-          ])
-          .describe('The type of daily loop module'),
-        order: z.number().describe('The sequence order (0, 1, 2...)'),
-        config: z
-          .record(z.string(), z.unknown())
-          .describe(
-            'Module-specific config. FLASHCARDS: { newCards, reviewCards }. READING: { topics, length, types }. WRITING: { length, preferences }. TRANSLATION: { direction, difficulty }. CUSTOM_LESSON: {}. REVIEW: {}.',
-          ),
-      }),
-    )
-    .min(1)
-    .describe('The daily loop modules in order'),
-  targetLanguage: z.string().describe('The language the user wants to learn'),
-  nativeLanguage: z.string().describe("The user's native language"),
+  instructions: z
+    .string()
+    .describe(
+      'A summary of the daily loop setup agreed upon with the user. Include: which modules to include (Flashcards, Reading, Writing, Translation, Custom Lesson), their order, and any specific preferences discussed. E.g. "Daily loop: Flashcards (10 new, 20 review) → Custom Lesson → Reading (short stories) → Translation → Writing. User prefers conversational topics."',
+    ),
 });
 
 export type CreateDailyLoopTool = z.infer<typeof CreateDailyLoopToolSchema>;
@@ -177,4 +155,3 @@ export const OnboardingChatInputSchema = z.object({
 });
 
 export type OnboardingChatInput = z.infer<typeof OnboardingChatInputSchema>;
-

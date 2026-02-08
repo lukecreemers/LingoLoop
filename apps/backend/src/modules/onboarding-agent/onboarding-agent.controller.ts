@@ -15,12 +15,11 @@ export class OnboardingAgentController {
    * Uses @Res() to bypass any global interceptors.
    *
    * SSE events:
-   * - data: { content: "..." }                                 — streamed chat text
-   * - data: { status: "..." }                                  — status message (e.g. "Building your roadmap...")
-   * - data: { roadmap_overview: true, overview: {...} }        — roadmap overview visual card
-   * - data: { onboarding_complete: true, courseId, userId }     — onboarding finished
-   * - data: { done: true }                                     — stream complete
-   * - data: { error: "..." }                                   — error
+   * - data: { content: "..." }                                         — streamed chat text
+   * - data: { status: "..." }                                          — status message
+   * - data: { tool_call: true, toolName: "...", args: {...} }          — tool call args for review
+   * - data: { done: true }                                             — stream complete
+   * - data: { error: "..." }                                           — error
    */
   @Post('chat')
   async streamChat(
@@ -56,19 +55,12 @@ export class OnboardingAgentController {
           res.write(
             `data: ${JSON.stringify({ status: event.message })}\n\n`,
           );
-        } else if (event.type === 'roadmap_overview') {
+        } else if (event.type === 'tool_call') {
           res.write(
             `data: ${JSON.stringify({
-              roadmap_overview: true,
-              overview: event.overview,
-            })}\n\n`,
-          );
-        } else if (event.type === 'onboarding_complete') {
-          res.write(
-            `data: ${JSON.stringify({
-              onboarding_complete: true,
-              courseId: event.courseId,
-              userId: event.userId,
+              tool_call: true,
+              toolName: event.toolName,
+              args: event.args,
             })}\n\n`,
           );
         } else if (event.type === 'done') {

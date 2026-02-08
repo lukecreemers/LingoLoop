@@ -10,7 +10,6 @@ import {
 import type { BaseMessage } from '@langchain/core/messages';
 import { tool } from '@langchain/core/tools';
 import { PrismaService } from '../../shared/prisma/prisma.service';
-import { CurriculumService } from '../timeline/curriculum.service';
 import {
   UpdateUserPreferencesToolSchema,
   CreateGrammarRoadmapToolSchema,
@@ -18,13 +17,7 @@ import {
   GenerateRoadmapOverviewToolSchema,
   ONBOARDING_TOOL_NAMES,
   type OnboardingChatInput,
-  type UpdateUserPreferencesTool,
-  type CreateGrammarRoadmapTool,
-  type CreateDailyLoopTool,
-  type GenerateRoadmapOverviewTool,
-  type RoadmapOverview,
 } from '../../shared/types/onboarding-agent.types';
-import type { DailyModuleType, UserLevel } from '@prisma/client';
 
 // ============================================================================
 // SYSTEM PROMPT
@@ -39,7 +32,7 @@ Role: You are tasked with the onboarding of a new user for a language app. Your 
 
 **The Probe:** Do not ask for their "level." Ask about their experience (For how long? What tools they have been using? etc).
 
-**Language Check:** Immediately follow up with one targeted question in their target language (unless they are an absolute beginner) to see how they handle it.
+**Language Check:** Immediately follow up with one targeted question in their target language (unless they are an absolute beginner, in which case do not mention anything and just go straight to next phase, i.e. never say something such as "Since you're at day one, I won't throw any Spanish at you just yet — we'll build that foundation together.") to see how they handle it.
 
 **The Constraint:** Ask only one question and wait for their response.
 
@@ -55,50 +48,51 @@ Role: You are tasked with the onboarding of a new user for a language app. Your 
 
 ### Phase 3: The Curriculum Roadmap
 
-After the user has defined their north star, if it makes sense for that specific user, generate a Master Curriculum Roadmap broken into phases (e.g., Week 1: Alphabet, Pronunciation, and Basic Greetings, Week 2: Food Vocabulary and Ordering Conversations).
+After the user has defined their north star, if it makes sense for that specific user, we need to gather information to generate a curriculum roadmap.
 
-The majority of users will need this if they have a north star — something to work for — but there will be users that are not interested in this feature. Give a bit of push back to users that are not interested and explain that the content taught in the curriculum is fed into other exercises, and not having one may detract the overall quality of the learning, but if the user is specific that they only want to practice say reading or writing etc. then that is fine.
+The majority of users will need this if they have a north star — something to work for — but there will be users that are not interested in this feature. Give a bit of push back to users that are not interested and explain that the content taught in the curriculum is fed into other exercises, and not having one may detract the overall quality of the learning.
 
-For this stage you need to figure out the general topics that need to be covered and the user's dedication level (how many lessons per week they plan to do).
+For this stage you need to figure out the general topics/grammar/tenses that need to be covered for the user to get to there north star, what the user already knows, and how many lessons they want to do per week (start with this as it helps figuring out what they can realistically learn in the timeframe).
 
-**Important limitation:** The roadmap is currently capped at **6 months maximum**. Let the user know that this is the initial roadmap and that it can be extended or restructured at any time as they progress. If the user's goal would take longer than 6 months (e.g., fluency might take 2 years), explain that this overview covers the first 6 months of their journey.
+**Important limitation:** The roadmap is currently capped at **6 months maximum**. If the users goal is too lofty given lessons per week, your information you are gathering is just relevant to what they can realistically learn during that time frame. If the user's goal would take longer than 6 months (e.g., fluency might take 2 years), explain that after 6 months we reassess, see where they are at, and create a curriculum for the next 6 months. Do not frame this as a limitation of an app, but as more of a check in point.
 
-**Roadmap Overview:** Once you have enough context about the user's goal and level, call the **generate_roadmap_overview** tool. This generates a beautiful visual card showing where the user is now, the topics and concepts they will learn, and what they will know by the end. Present this to the user and check that they are happy with the general direction. If they want to add, remove, or reorder topics, discuss changes and call the tool again with updated context.
+**Information Gathering** If the user seems unsure of what they want to learn or how to get there, direct the conversation and give them thoughts on what you think they should learn based on their north star, set realistic timeframes and check with them if it sounds good.
 
-**The Detailed Roadmap:** Once the user approves the overview, call the create_grammar_roadmap tool, only feed in instructions on what the curriculum can cover up to that 6 month max. If you think that they can only learn so much, those are the instructions you feed in.
+**How lessons work** Lessons are AI generated, and thus can only do so much. They can explain things, run activities which are mostly reading, flashcards, production (writing and translation exercises) and fill in the blank type exercises. They cannot test speaking and listening. A lesson node is fed into the users daily loop
 
-**Logic:** Explain that each phase in this roadmap will feed one "Custom Lesson" into their Daily Loop every day. Also explain that there will be daily review lessons to reinforce learning from other days.
+**Don't give timeline breakdowns** When you are reflecting what you think the roadmap will look like, do not breakdown into weeks or phases. Just mention the things you think are achievable within the timeframe (e.g. within 6 months).
 
-**Information Gathering** If the user seems unsure of what they want to learn or how to get there, direct the conversation and give them thoughts on what you think they should learn and check if it sounds good.
-
-**How lessons work** The curriculum develops an amount of lessons per week, each lesson is 15-20 minutes long, and there will also be review lessons. Review lessons are essential and regardless of the user speed of learning are required. This means for dedicated users they will have higher amounts of weekly review lessons, whereas a more lowkey user will have less weekly lessons and less review lessons.
-
-**Limitations with app** Lessons are part of a daily loop, so depends on the daily loop and dedication of user.
-
-**Don't give timeline breakdowns** When you are reflecting what you think the roadmap will look like, do not breakdown into weeks or phases. Just mention the things you think are achievable within the timeframe (e.g. within 6 months). There is a future agent that will breakdown the user goal into actual individual lessons and timeframes that is much more capable than you. Also don't repeat information, you have a roadmap overview generator, when calling this tool, it will display the information of the timeline overview, do not regurtate that information.
+For this phase, you are basically just trying to figure what level they are at (a1, a2 etc. don't use this language unless they do though), what they already know, and what they are wanting to learn, and what you think is achievable within their timeframe (or within 6 month cap).
+At end of all phases you will be calling the create_grammar_roadmap tool to generate the curriculum roadmap and would need to send a string like this:
+"The learner is at B1 level with solid conversational ability in present and past tenses. They need a 4-month curriculum to reach B2 — refresh on conditional and preterite, mastering subjunctive mood, conditional structures, advanced vocabulary, and the ability to express nuanced opinions, hypotheticals, and arguments in writing and reading. They want to do 3 lessons per week."
 
 ### Phase 4: Marking strictness
 Ask about marking preferences — how strict should we be? Do they care about accents and punctuation in exercises? This helps us calibrate the experience.
 
 
 ### Phase 5: The Daily Workout (The Loop)
+Propose a holistic "Daily Loop" learning schedule based on the user’s available time and North Star goals. Instead of asking for technical specs, act as a learning consultant who presents a finished recommendation for the user to approve or tweak.
+The Philosophy of the Loop
+The Recommendation: Strongly advocate for a "complete diet" approach. Recommend that the user performs all available activities (Flashcards, Reading, Writing, Translation, and Custom Lessons).
+The Value Prop: Briefly explain the synergy—how Flashcards fuel Reading, and Translation builds the bridge to Writing. Warn that skipping one creates a "blind spot" in their fluency.
+The Missing Link (Speaking): Explicitly state that while the app doesn't currently support a speaking feature (it's in development!), it is vital. Recommend they shadow the audio in the Reading/Flashcard units and suggest external practice (e.g., recording themselves or using language partners).
+The "Time-First" Logic
+Inference over Interrogation: Do not ask for specific settings for every unit. Instead, identify the user's total daily/weekly time commitment.
+Constraint-Based Planning: Use the user's time budget to calculate the "Loop."
+Example: If a user has 30 minutes, suggest 10m Flashcards, 10m Reading/MCQ, and 10m alternating Writing/Translation.
+Logical Defaults: Flashcards use a preset anki system, in it cards take roughly 10 seconds to review, and are doubled up (e.g. english to spanish, spanish to english), for each new card there will be around 7 review cards so keep this in mind when suggesting amount of new words per day and time it takes. Assume standard "best practices" for frequency (e.g., daily cards, alternating writing/translation) unless the user specifies otherwise.
+Delivery Structure Present the proposal as a unified "Learning Blueprint" including:
+The Weekly Rhythm: A high-level view of which activities happen on which days and their estimated frequencies.
+The Daily Flow: A suggested sequence (Standard: Flashcards → Lesson → Reading → Translation → Writing).
+Content Mix: For Reading/Writing, propose a "mix of topics" aligned with their North Star, but leave a placeholder (e.g., "We’ll start with a mix of News and Travel stories—let me know if you want to narrow this down").
+Data Requirements for the Config Agent At the end of the conversation you will need to generate a tool call with the following technical configuration. Ensure your conversation naturally uncovers these without a checklist:
+Flashcards: Daily volume, review caps (only if specifically requested by user), and frequency per week.
+Reading: Content types (Story/News/etc.), duration, inclusion of MCQs, and frequency.
+Writing/Translation: Time per session, translation direction (Native-to-Target/Target-to-Native), and frequency.
+Custom Lesson: Placement within the loop relative to the Grammar Roadmap.
 
-After the user has defined their north star and grammar roadmap, propose a Daily Loop. This will depend on the user but here are the things you have access to:
-
-- **Flashcards** (pulls in an amount of words and review words)
-- **Reading** (either stories or conversations around a certain theme or topic)
-- **Writing practice** (gives a custom prompt the user will answer and get marked on for use of grammar etc.)
-- **Translation practice** (gives the user something in English or vice versa to translate)
-- **Custom lesson node** (lesson from their overall grammar master roadmap, only availlable if they have a grammar roadmap).
-
-Think about the user's needs and structure this in the way that will optimise their learning.
-
-In general, the flow of a daily loop should be as follows: "Flashcards" -> "Custom lesson" -> "Reading" -> "Translation practice" -> "Writing practice"
-Reccomend that the user should do all of these, be very clear about the benefits of all of them and what the user will be missing out on if they don't do them.
-And also mention that at the moment we don't have a speaking feature, talk about the importance of this, reccomend the user speaks while reading or
-other tips you have for them, but make it clear they should be trying to do this outside of the app (give some reccomendations), also mention this is a 
-planned future feature for the app.
-
+One note, for flashcards, give an estimation of how many words they will have learnt by end of there timeframe and comment on how much it aligns (e.g. maybe they need to increase their daily volume to reach their goal).
+After presenting the recommended structure, ask the user: "Does this schedule feel sustainable for you, or should we adjust the intensity of any specific area?"
 
 ### Phase 6: Finalisation
 
@@ -111,13 +105,16 @@ All three tool calls should happen at the end once you have all the information.
 
 ### Style & Tone Guidelines
 
-**Tone:** Professional, direct, super optimistic and friendly (not cringey, no slang, wholesome, humble). Be honest.
+**Tone:** Professional, direct, super optimistic and friendly (not cringey, no slang, wholesome, humble). Be honest. 
 
 **Direction:** Only ask one question at a time.
 
 **Formatting:** Use ### for section headers and --- for transitions. **Bold** key terms.
 
 **Pedagogy:** Briefly explain the "why" behind your recommendations (e.g., "We prioritize 'The Forge' because active production creates 4x more neural pathways than passive listening.")
+
+**AI Speak:** Use the word "I" instead of "we" when speaking to the user, unless questioned directly, don't say things are AI generated, use phrasing like tailored to you, personalized, etc.
+
 
 ### App Context (mention when relevant):
 - Activities in the loop can be repeated multiple times whenever
@@ -126,6 +123,7 @@ All three tool calls should happen at the end once you have all the information.
 - There is a massive list of prebuilt grammar lessons that are also available outside of the daily loop
 - User's vocabulary is stored, and spaced repetition is used for word learning
 - At any point if the user is unhappy, their daily loop and end goal can be changed!
+- User can always review old lessons, can generate custom lessons at any time, and can make any changes they want.
 
 ### Rules of Engagement
 
@@ -144,7 +142,8 @@ const INTERNAL_TOOL_SET = new Set<string>(ONBOARDING_TOOL_NAMES);
 
 const INTERNAL_TOOL_STATUS: Record<string, string> = {
   update_user_preferences: 'Saving your preferences...',
-  create_grammar_roadmap: 'Building your grammar roadmap... this may take a moment.',
+  create_grammar_roadmap:
+    'Building your grammar roadmap... this may take a moment.',
   create_daily_loop: 'Setting up your daily loop...',
   generate_roadmap_overview: 'Crafting your personalized roadmap overview...',
 };
@@ -161,13 +160,9 @@ export class OnboardingAgentService {
   /** Track state across tool calls within a single stream session */
   private sessionState: {
     userId?: string;
-    courseId?: string;
   } = {};
 
-  constructor(
-    private readonly prisma: PrismaService,
-    private readonly curriculumService: CurriculumService,
-  ) {
+  constructor(private readonly prisma: PrismaService) {
     this.llm = new ChatAnthropic({
       model: 'claude-sonnet-4-5',
       apiKey: process.env.ANTHROPIC_API_KEY,
@@ -180,343 +175,33 @@ export class OnboardingAgentService {
   // --------------------------------------------------------------------------
 
   private getTools() {
-    const updateUserPreferences = tool(
-      async (args) => JSON.stringify(args),
-      {
-        name: 'update_user_preferences',
-        description:
-          "Save the user's profile, assessed level, learning preferences, and marking preferences. Call this once you have gathered all the necessary information about the user. This creates or updates their User record and LanguageCourse.",
-        schema: UpdateUserPreferencesToolSchema,
-      },
-    );
+    const updateUserPreferences = tool(async (args) => JSON.stringify(args), {
+      name: 'update_user_preferences',
+      description:
+        "Save the user's profile, assessed level, learning preferences, and marking preferences. Call this once you have gathered all the necessary information about the user. This creates or updates their User record and LanguageCourse.",
+      schema: UpdateUserPreferencesToolSchema,
+    });
 
-    const createGrammarRoadmap = tool(
-      async (args) => JSON.stringify(args),
-      {
-        name: 'create_grammar_roadmap',
-        description:
-          "Generate and save a grammar roadmap (curriculum) for the user. The roadmap is capped at 6 months. Call this after the user approves the roadmap overview. Include a detailed userGoal string that captures the user's objective, timeline, level, and any context.",
-        schema: CreateGrammarRoadmapToolSchema,
-      },
-    );
+    const createGrammarRoadmap = tool(async (args) => JSON.stringify(args), {
+      name: 'create_grammar_roadmap',
+      description:
+        "Generate and save a grammar roadmap (curriculum) for the user. The roadmap is capped at 6 months. Call this after the user approves the roadmap overview. Include a detailed userGoal string that captures the user's objective, timeline, level, and any context.",
+      schema: CreateGrammarRoadmapToolSchema,
+    });
 
-    const createDailyLoop = tool(
-      async (args) => JSON.stringify(args),
-      {
-        name: 'create_daily_loop',
-        description:
-          "Set up the user's daily loop with the agreed-upon modules in order. Each module has a type, order, and config. Call this after the user approves their daily loop.",
-        schema: CreateDailyLoopToolSchema,
-      },
-    );
+    const createDailyLoop = tool(async (args) => JSON.stringify(args), {
+      name: 'create_daily_loop',
+      description:
+        "Set up the user's daily loop with the agreed-upon modules in order. Each module has a type, order, and config. Call this after the user approves their daily loop.",
+      schema: CreateDailyLoopToolSchema,
+    });
 
-    const generateRoadmapOverview = tool(
-      async (args) => JSON.stringify(args),
-      {
-        name: 'generate_roadmap_overview',
-        description:
-          "Generate a high-level overview of topics and concepts the user will learn. This does NOT include timeframes — a future agent handles that. It shows: where the user is now, what they will learn (topic areas with concepts), and what they will know by the end. Call this in Phase 3 once you understand the user's goal and current level. The overview is displayed as a beautiful visual card in the chat. After showing it, ask the user if they want to adjust anything before proceeding.",
-        schema: GenerateRoadmapOverviewToolSchema,
-      },
-    );
-
-    return [updateUserPreferences, createGrammarRoadmap, createDailyLoop, generateRoadmapOverview];
+    return [updateUserPreferences, createGrammarRoadmap, createDailyLoop];
   }
 
   // --------------------------------------------------------------------------
-  // Tool execution
+  // Tool execution (test mode — just passes args through to frontend)
   // --------------------------------------------------------------------------
-
-  private async executeUpdateUserPreferences(
-    args: UpdateUserPreferencesTool,
-  ): Promise<string> {
-    // User is already authenticated — just look them up and update name if provided
-    if (!this.sessionState.userId) {
-      return JSON.stringify({ error: 'No authenticated user in session.' });
-    }
-
-    let user = await this.prisma.user.findUnique({
-      where: { id: this.sessionState.userId },
-    });
-
-    if (!user) {
-      return JSON.stringify({ error: 'Authenticated user not found in database.' });
-    }
-
-    if (args.userName) {
-      user = await this.prisma.user.update({
-        where: { id: user.id },
-        data: { name: args.userName },
-      });
-    }
-
-    // Upsert LanguageCourse
-    const course = await this.prisma.languageCourse.upsert({
-      where: {
-        userId_targetLanguage: {
-          userId: user.id,
-          targetLanguage: args.targetLanguage,
-        },
-      },
-      update: {
-        level: args.level as UserLevel,
-        preferences: args.preferences,
-        markingPreferences: args.markingPreferences,
-        nativeLanguage: args.nativeLanguage,
-      },
-      create: {
-        userId: user.id,
-        targetLanguage: args.targetLanguage,
-        nativeLanguage: args.nativeLanguage,
-        level: args.level as UserLevel,
-        preferences: args.preferences,
-        markingPreferences: args.markingPreferences,
-        isActive: true,
-        onboardingCompleted: false,
-      },
-    });
-
-    this.sessionState.courseId = course.id;
-
-    this.logger.log(
-      `Saved user preferences: userId=${user.id}, courseId=${course.id}, level=${args.level}`,
-    );
-
-    return JSON.stringify({
-      success: true,
-      userId: user.id,
-      courseId: course.id,
-      message: `User preferences saved. Level: ${args.level}, Language: ${args.targetLanguage}.`,
-    });
-  }
-
-  private async executeCreateGrammarRoadmap(
-    args: CreateGrammarRoadmapTool,
-  ): Promise<string> {
-    if (!this.sessionState.courseId) {
-      return JSON.stringify({
-        error: 'No course found. Call update_user_preferences first.',
-      });
-    }
-
-    try {
-      // Generate curriculum using the existing service (capped at 6 months in the prompt)
-      const goalWithCap = `${args.userGoal}\n\nIMPORTANT: Limit the roadmap to a maximum of 6 months (24 weeks). If the goal requires more time, focus on the most critical foundations and progression for the first 6 months.`;
-
-      const curriculum = await this.curriculumService.generateCurriculum({
-        userGoal: goalWithCap,
-      });
-
-      // Persist to database
-      const roadmap = await this.prisma.roadmap.create({
-        data: {
-          courseId: this.sessionState.courseId,
-          weeks: {
-            create: curriculum.months.flatMap((month) =>
-              month.weeks.map((week) => ({
-                weekNumber: week.globalWeekIndex + 1,
-                title: `${month.name} — ${week.name}`,
-                description: week.description,
-                lessons: {
-                  create: week.lessons.map((lesson) => ({
-                    title: lesson.name,
-                    description: lesson.description,
-                    isUserMade: false,
-                    completed: false,
-                  })),
-                },
-              })),
-            ),
-          },
-        },
-        include: {
-          weeks: {
-            include: { lessons: true },
-            orderBy: { weekNumber: 'asc' },
-          },
-        },
-      });
-
-      this.logger.log(
-        `Created roadmap: ${roadmap.id} with ${roadmap.weeks.length} weeks, ${curriculum.totalLessons} lessons`,
-      );
-
-      return JSON.stringify({
-        success: true,
-        roadmapId: roadmap.id,
-        totalMonths: curriculum.totalMonths,
-        totalWeeks: curriculum.totalWeeks,
-        totalLessons: curriculum.totalLessons,
-        message: `Grammar roadmap created: ${curriculum.totalMonths} months, ${curriculum.totalWeeks} weeks, ${curriculum.totalLessons} lessons.`,
-      });
-    } catch (error) {
-      this.logger.error(`Failed to create roadmap: ${error}`);
-      return JSON.stringify({
-        error: `Failed to create roadmap: ${error instanceof Error ? error.message : 'Unknown error'}`,
-      });
-    }
-  }
-
-  private async executeCreateDailyLoop(
-    args: CreateDailyLoopTool,
-  ): Promise<string> {
-    if (!this.sessionState.courseId) {
-      return JSON.stringify({
-        error: 'No course found. Call update_user_preferences first.',
-      });
-    }
-
-    try {
-      const dailyLoop = await this.prisma.dailyLoop.create({
-        data: {
-          courseId: this.sessionState.courseId,
-          modules: {
-            create: args.modules.map((mod) => ({
-              type: mod.type as DailyModuleType,
-              order: mod.order,
-              config: mod.config as object,
-            })),
-          },
-        },
-        include: {
-          modules: { orderBy: { order: 'asc' } },
-        },
-      });
-
-      // Mark onboarding as complete
-      await this.prisma.languageCourse.update({
-        where: { id: this.sessionState.courseId },
-        data: { onboardingCompleted: true },
-      });
-
-      this.logger.log(
-        `Created daily loop: ${dailyLoop.id} with ${dailyLoop.modules.length} modules. Onboarding marked complete.`,
-      );
-
-      return JSON.stringify({
-        success: true,
-        dailyLoopId: dailyLoop.id,
-        moduleCount: dailyLoop.modules.length,
-        modules: dailyLoop.modules.map((m) => ({
-          type: m.type,
-          order: m.order,
-        })),
-        message: `Daily loop created with ${dailyLoop.modules.length} modules. Onboarding complete!`,
-      });
-    } catch (error) {
-      this.logger.error(`Failed to create daily loop: ${error}`);
-      return JSON.stringify({
-        error: `Failed to create daily loop: ${error instanceof Error ? error.message : 'Unknown error'}`,
-      });
-    }
-  }
-
-  private async executeGenerateRoadmapOverview(
-    args: GenerateRoadmapOverviewTool,
-  ): Promise<{ result: string; overview?: RoadmapOverview }> {
-    try {
-      const opusLlm = new ChatAnthropic({
-        model: 'claude-sonnet-4-20250514',
-        apiKey: process.env.ANTHROPIC_API_KEY,
-        temperature: 0.5,
-      });
-
-      const overviewPrompt = `You are a language learning curriculum designer. Generate a high-level overview of WHAT the user needs to learn — the topics and concepts — without any timeframes or scheduling. A separate system will later break these into phases and individual lessons.
-
-## Student Profile
-- **Target Language:** ${args.targetLanguage}
-- **Native Language:** ${args.nativeLanguage}
-- **Current Level:** ${args.currentLevel}
-- **Goal:** ${args.userGoal}
-${args.additionalContext ? `- **Additional Context:** ${args.additionalContext}` : ''}
-
-## What to generate
-1. **currentSnapshot** — A short paragraph describing where the user is RIGHT NOW (what they already know or can do based on their level).
-2. **endGoalSnapshot** — A short paragraph describing what the user will know/be able to do by the end of this curriculum (capped at 6 months of learning).
-3. **topicAreas** — The major topic areas the curriculum will cover, ordered from foundational to advanced. Each topic area has a title, a short description of why it matters, and a list of specific concepts/skills covered.
-4. **note** — (optional) Any important note, e.g. if the goal extends beyond 6 months and this only covers the first stretch.
-
-## Output Format
-Return ONLY valid JSON with this exact structure (no markdown, no code fences):
-{
-  "currentSnapshot": "Where the user is now...",
-  "endGoalSnapshot": "What they'll be able to do by the end...",
-  "topicAreas": [
-    {
-      "title": "Topic area name",
-      "description": "Why this matters and what it covers in 1-2 sentences",
-      "concepts": ["Specific concept 1", "Specific concept 2", "Specific concept 3"]
-    }
-  ],
-  "note": "Optional note"
-}
-
-Generate 4-8 topic areas that logically progress from foundational to more complex skills. Be specific with concepts — not vague categories. Tailor everything to the user's specific goal. If the user's goal would realistically take longer than 6 months, scope this to what can be covered in 6 months and mention this in the note.`;
-
-      const response = await opusLlm.invoke([
-        new HumanMessage(overviewPrompt),
-      ]);
-
-      const responseText = typeof response.content === 'string'
-        ? response.content
-        : Array.isArray(response.content)
-          ? response.content
-              .filter(
-                (b): b is { type: 'text'; text: string } =>
-                  typeof b === 'object' && b !== null && 'type' in b && b.type === 'text',
-              )
-              .map((b) => b.text)
-              .join('')
-          : '';
-
-      // Parse the JSON response
-      const cleanedJson = responseText.replace(/```json\n?|\n?```/g, '').trim();
-      const overview: RoadmapOverview = JSON.parse(cleanedJson);
-
-      this.logger.log(
-        `Generated roadmap overview: ${overview.topicAreas.length} topic areas`,
-      );
-
-      return {
-        result: JSON.stringify({
-          success: true,
-          overview,
-          message: `Roadmap overview generated with ${overview.topicAreas.length} topic areas. The user can now review and request changes.`,
-        }),
-        overview,
-      };
-    } catch (error) {
-      this.logger.error(`Failed to generate roadmap overview: ${error}`);
-      return {
-        result: JSON.stringify({
-          error: `Failed to generate roadmap overview: ${error instanceof Error ? error.message : 'Unknown error'}`,
-        }),
-      };
-    }
-  }
-
-  private async executeInternalTool(
-    name: string,
-    args: Record<string, unknown>,
-  ): Promise<string> {
-    switch (name) {
-      case 'update_user_preferences':
-        return this.executeUpdateUserPreferences(
-          args as unknown as UpdateUserPreferencesTool,
-        );
-      case 'create_grammar_roadmap':
-        return this.executeCreateGrammarRoadmap(
-          args as unknown as CreateGrammarRoadmapTool,
-        );
-      case 'create_daily_loop':
-        return this.executeCreateDailyLoop(
-          args as unknown as CreateDailyLoopTool,
-        );
-      // generate_roadmap_overview is handled separately in streamChat
-      default:
-        return JSON.stringify({ error: `Unknown tool: ${name}` });
-    }
-  }
 
   // --------------------------------------------------------------------------
   // Streaming chat
@@ -544,22 +229,22 @@ Generate 4-8 topic areas that logically progress from foundational to more compl
   /**
    * Stream the onboarding agent chat with an agentic loop.
    *
-   * All tools are internal — they auto-execute on the backend and
-   * feed the result back to the LLM.
+   * TEST MODE: Tool calls are NOT executed — instead their args are
+   * emitted to the frontend as `tool_call` events so they can be reviewed.
+   * A mock success is fed back to the LLM so it continues the conversation.
    *
    * Yields events:
    * - { type: 'content', content: string }
+   * - { type: 'tool_call', toolName: string, args: Record<string, unknown> }
    * - { type: 'status', message: string }
-   * - { type: 'onboarding_complete', courseId: string, userId: string }
    * - { type: 'done' }
    */
   async *streamChat(
     input: OnboardingChatInput,
   ): AsyncGenerator<
     | { type: 'content'; content: string }
+    | { type: 'tool_call'; toolName: string; args: Record<string, unknown> }
     | { type: 'status'; message: string }
-    | { type: 'roadmap_overview'; overview: RoadmapOverview }
-    | { type: 'onboarding_complete'; courseId: string; userId: string }
     | { type: 'done' }
   > {
     // Reset session state for this stream
@@ -567,23 +252,26 @@ Generate 4-8 topic areas that logically progress from foundational to more compl
 
     const currentMessages: BaseMessage[] = [
       new SystemMessage(ONBOARDING_SYSTEM_PROMPT),
-      ...(input.chatHistory ?? []).slice(-30).map((msg) =>
-        msg.role === 'user'
-          ? new HumanMessage(msg.content)
-          : new AIMessage(msg.content),
-      ),
+      ...(input.chatHistory ?? [])
+        .slice(-30)
+        .map((msg) =>
+          msg.role === 'user'
+            ? new HumanMessage(msg.content)
+            : new AIMessage(msg.content),
+        ),
       new HumanMessage(input.userMessage),
     ];
 
     const tools = this.getTools();
     const llmWithTools = this.llm.bindTools(tools);
 
-    // Agentic loop — keeps going for multiple internal tool calls
-    const MAX_LOOPS = 6; // up to 3 tools + follow-up responses
-    let onboardingCompleted = false;
+    // Agentic loop — keeps going for multiple tool calls
+    const MAX_LOOPS = 6;
 
     for (let loop = 0; loop < MAX_LOOPS; loop++) {
-      this.logger.debug(`Onboarding agent: streaming LLM (loop ${loop + 1})...`);
+      this.logger.debug(
+        `Onboarding agent: streaming LLM (loop ${loop + 1})...`,
+      );
 
       const stream = await llmWithTools.stream(currentMessages);
       let aggregated: AIMessageChunk | null = null;
@@ -622,52 +310,31 @@ Generate 4-8 topic areas that logically progress from foundational to more compl
         break; // No tool calls — done
       }
 
-      // Process all tool calls in sequence (agent may call all 3 at once)
+      // Process all tool calls — emit args to frontend, feed mock success back to LLM
       for (const toolCall of aggregated.tool_calls) {
         const toolName = toolCall.name;
 
         if (INTERNAL_TOOL_SET.has(toolName)) {
-          this.logger.log(
-            `Onboarding agent: executing tool — ${toolName}`,
-          );
+          // Log tool call args to console so they can be reviewed
+          console.log('\n' + '='.repeat(80));
+          console.log(`🔧 TOOL CALL: ${toolName}`);
+          console.log('='.repeat(80));
+          console.log(JSON.stringify(toolCall.args, null, 2));
+          console.log('='.repeat(80) + '\n');
 
+          // Emit tool args to frontend for review
           yield {
-            type: 'status',
-            message: INTERNAL_TOOL_STATUS[toolName] ?? `Running ${toolName}...`,
+            type: 'tool_call',
+            toolName,
+            args: toolCall.args as Record<string, unknown>,
           };
 
-          let toolResult: string;
+          // Feed mock success back so the LLM can continue
+          const mockResult = JSON.stringify({
+            success: true,
+            message: `[TEST MODE] ${toolName} received and displayed to user for review.`,
+          });
 
-          // Special handling for roadmap overview — emits a custom event
-          if (toolName === 'generate_roadmap_overview') {
-            const { result, overview } = await this.executeGenerateRoadmapOverview(
-              toolCall.args as unknown as GenerateRoadmapOverviewTool,
-            );
-            toolResult = result;
-
-            if (overview) {
-              yield { type: 'roadmap_overview', overview };
-            }
-          } else {
-            toolResult = await this.executeInternalTool(
-              toolName,
-              toolCall.args as Record<string, unknown>,
-            );
-          }
-
-          // Check if this was the daily loop (last step = onboarding complete)
-          if (toolName === 'create_daily_loop') {
-            try {
-              const result = JSON.parse(toolResult);
-              if (result.success) {
-                onboardingCompleted = true;
-              }
-            } catch {
-              // ignore parse error
-            }
-          }
-
-          // Build messages for the LLM to continue
           const aiMsg = new AIMessage({
             content: this.extractTextContent(aggregated),
             tool_calls: [
@@ -680,21 +347,12 @@ Generate 4-8 topic areas that logically progress from foundational to more compl
           });
 
           const toolMsg = new ToolMessage({
-            content: toolResult,
+            content: mockResult,
             tool_call_id: toolCall.id ?? '',
           });
 
           currentMessages.push(aiMsg, toolMsg);
         }
-      }
-
-      // If onboarding is complete, emit the event
-      if (onboardingCompleted && this.sessionState.courseId && this.sessionState.userId) {
-        yield {
-          type: 'onboarding_complete',
-          courseId: this.sessionState.courseId,
-          userId: this.sessionState.userId,
-        };
       }
     }
 
@@ -743,6 +401,3 @@ Generate 4-8 topic areas that logically progress from foundational to more compl
     return { needsOnboarding: false, courseId: activeCourse.id, userId };
   }
 }
-
-
-
